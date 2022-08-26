@@ -8,6 +8,7 @@
 #include "vector.h"
 
 
+#define PING_TIMEOUT 30 //seconds
 #define MSG_SIZE 32
 #define MSG_PING 0
 #define MSG_EXIT 1
@@ -41,7 +42,9 @@ struct recv_ping_info {
 };
 
 
-int send_ping(send_ping_info_t * si, int msg);
+int check_ping_times(vector_t * pings);
+
+int send_ping(send_ping_info_t si, int msg);
 int recv_ping(vector_t * pings, recv_ping_info_t * ri);
 
 int init_send_ping_info(send_ping_info_t * ri, char * group_addr_str,

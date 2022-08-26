@@ -21,14 +21,25 @@
 #define SOCK_OPT_ERR 12
 
 #define SOCK_SEND_ERR 13
-#define SOCK_RECV_ERR 14
+#define SOCK_SEND_NAME_ERR 14
+#define SOCK_RECV_ERR 15
+#define SOCK_RECV_NAME_ERR 16
 
-#define SOCK_EXIT_UNKNOWN_ERR 15
+#define SOCK_EXIT_UNKNOWN_ERR 17
 
 //conn_udp.h - special cases
-#define SOCK_RECV_EXIT_ERR 16
+#define SOCK_RECV_EXIT_ERR 18
+
+//conn_transfer.h
+#define FILE_OPEN_ERR 19
+#define FILE_STAT_ERR 20
+#define FILE_MMAP_ERR 21
+#define FILE_WRITE_ERR 22
 
 //config.h
-#define CONF_ADDR_ERR 17
+#define CONF_ADDR_ERR 23
+
+//critical errors
+#define CRITICAL_ERR 24
 
 #endif

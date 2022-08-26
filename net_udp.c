@@ -15,14 +15,39 @@
 #include <stdio.h>
 
 
-int send_ping(send_ping_info_t * si, int msg) {
+int check_ping_times(vector_t * pings) {
+
+	int ret;
+	addr_ping_info_t * ping;
+
+	time_t cur_time = time(NULL);
+
+	//For every ping recorded
+	for (unsigned long i = 0; i < pings->length; i++) {
+
+		ret = vector_get_ref(pings, i, (char **) &ping);
+		if (ret != SUCCESS) return ret;
+
+		//if no ping received for address in PING_TIMEOUT seconds
+		if (cur_time > (ping->last_ping + PING_TIMEOUT)) {
+			ret = vector_rmv(pings, i);
+			if (ret != SUCCESS) return ret;
+		}
+		//End if no ping received
+	} //End for every ping recorded
+
+	return SUCCESS;
+}
+
+
+int send_ping(send_ping_info_t si, int msg) {
 
 	ssize_t ret;
 	char body[2][MSG_SIZE] = {"scarlet-ping", "scarlet-exit"};
 	
-	ret = sendto(si->sock, body[msg], strlen(body[msg]), 0,
-			     (struct sockaddr *) &si->addr, sizeof(si->addr));
-	if (ret == -1) { close(si->sock); return SOCK_SEND_ERR; }
+	ret = sendto(si.sock, body[msg], strlen(body[msg]), 0,
+			     (struct sockaddr *) &si.addr, sizeof(si.addr));
+	if (ret == -1) { close(si.sock); return SOCK_SEND_ERR; }
 	return SUCCESS;
 }
 
@@ -66,16 +91,16 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 		if (rett == FAIL) {
 
 			rett = vector_add(pings, pos, NULL, VECTOR_APPEND_TRUE);
-			if (rett != SUCCESS) return ret;
-			rett = vector_get_ref(pings, pos, (char **) &api);
-			if (ret != SUCCESS) return ret;
+			if (rett != SUCCESS) return rett;
+			rett = vector_get_ref(pings, pings->length - 1, (char **) &api);
+			if (rett != SUCCESS) return rett;
 			api->addr = recv_addr;
 
 		//Else if ping from known, tracked host
 		} else if (rett == SUCCESS) {
 
 			rett = vector_get_ref(pings, pos, (char **) &api);
-			if (ret != SUCCESS) return ret;
+			if (rett != SUCCESS) return rett;
 		}
 
 		//Set last ping time

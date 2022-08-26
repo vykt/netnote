@@ -39,7 +39,7 @@ int vector_add(vector_t * v, unsigned long pos, char * data, unsigned short appe
 	}
 
 	//Check if asking for data out of bounds
-	if (pos > v->length) {
+	if (pos > v->length && append == VECTOR_APPEND_FALSE) {
 		return OUT_OF_BOUNDS_ERR;
 	}
 
