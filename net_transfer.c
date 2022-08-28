@@ -16,7 +16,6 @@ int conn_send(conn_info_t * ci) {
 	char * mem_block;
 	size_t mem_block_size = 0;
 	
-	char send_buf[DF_BUF] = {};
 	unsigned int buf_size = 0;
 
 	ssize_t rd_wr;

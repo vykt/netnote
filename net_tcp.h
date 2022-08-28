@@ -40,7 +40,6 @@ struct conn_info {
 	int fd;
 	unsigned int send_count;
 	struct stat f_stat;
-	char filename[NAME_MAX];
 };
 
 

@@ -1,3 +1,4 @@
+#include "net_transfer.h"
 #include "net_tcp.h"
 #include "net_udp.h"
 #include "vector.h"
@@ -7,6 +8,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <linux/limits.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -20,7 +22,7 @@ int main() {
 	unsigned short port_udp = 5148;
 	unsigned short port_tcp = 5149;
 
-	char * filepath = "/home/vykt/programming/scarlet/"
+	char filepath[PATH_MAX] = "/home/vykt/programming/scarlet/";
 	//TODO end temporary values
 
 	//Testing variables
@@ -65,16 +67,28 @@ int main() {
 	//END UDP ping send & recv
 
 
-	//TCP connect & listen
+	//TCP listen & recv
 	//ret = init_conn_listener_info(&cli, port_tcp);
 	//printf("init conn listener: %d\n", ret);
 
-	//ret = conn_listener(&conns, cli);
-	//printf("conn listener: %d\n", ret);
+	//while (1) {
+	//	ret = conn_listener(&conns, cli, filepath);
+	//	if (ret == SUCCESS) break;
+	//}
 
-
-	
+	//conn_info_t * ci;
+	//while (1) {
+	//	ret = vector_get_ref(&conns, 0, (char **) &ci);
+	//	ret = conn_recv(ci);
+	//}
 	//END TCP connect & listen
+
+	//TCP send
+	//struct sockaddr_in6 addr = {AF_INET6, htons(ports)};
+	//ret = inet_pton(AF_INET6, "2a02:c7f:f6ef:1c00:160e:1304:8cfe:2431", &addr.sin6_addr);
+	
+	//ret = conn_initiate(&conns, addr, "scarlet.txt");
+	//END TCP send
 
 	return 0;
 

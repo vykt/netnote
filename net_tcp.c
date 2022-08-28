@@ -69,7 +69,7 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	int ret;
 	int sock_conn;
 	ssize_t rd_wr;
-	char filepath[PATH_MAX] = {};
+	char filename[NAME_MAX] = {};
 	conn_info_t * ci;
 	socklen_t addr_len = sizeof(cli.addr);
 	
@@ -91,7 +91,7 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	ci->status = CONN_STAT_RECV_INPROG;
 
 	//Wait to receive filename
-	rd_wr = recv(ci->sock, ci->filename, NAME_MAX, 0);
+	rd_wr = recv(ci->sock, filename, NAME_MAX, 0);
 	if (rd_wr <= 0) {
 		close(ci->sock);
 		ret = vector_rmv(conns, conns->length - 1);
@@ -101,8 +101,8 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	}
 
 	//Now, create file at /dir/filename
-	strcat(dir, ci->filename);
-	ci->fd = open(filepath, O_WRONLY | O_CREAT, 0644);
+	strcat(dir, filename);
+	ci->fd = open(dir, O_WRONLY | O_CREAT, 0644);
 	if (ci->fd == -1) { close(ci->sock); return FILE_OPEN_ERR; }
 
 	return SUCCESS;
@@ -126,7 +126,7 @@ int init_conn_listener_info(conn_listener_info_t * cli, unsigned short port) {
 
 	ret = bind(cli->sock, (struct sockaddr *) &cli->addr, sizeof(cli->addr));
 	if (ret == -1) { close(cli->sock); return SOCK_BIND_ERR; }
-	
+
 	//Set sock opts
 	ret = setsockopt(cli->sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 	if (ret == -1) { close(cli->sock); return SOCK_OPT_ERR; }
