@@ -9,10 +9,20 @@
 #include <unistd.h>
 #include <string.h>
 #include <linux/limits.h>
+#include <errno.h>
+
+#include <sys/poll.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+
+
+#define CONN_MAX 32
+#define ARR_AVAILABLE 1
+#define ARR_UNAVAILABLE 0
+
+#define POLL_TIMEOUT 5 //Tenth's of a second
 
 
 int main() {
@@ -30,10 +40,15 @@ int main() {
 	send_ping_info_t si;
 	recv_ping_info_t ri;
 	conn_listener_info_t cli;
+	struct sockaddr_in6 send_addr = {AF_INET6, htons(port_tcp)};
 	struct sockaddr_in6 recv_addr;
 
 	vector_t pings;
 	vector_t conns;
+
+	struct pollfd poll_fds[CONN_MAX] = {};
+	int poll_fds_availability[CONN_MAX] = {ARR_AVAILABLE};
+	unsigned short poll_fds_count = 0;
 	//End testing variables
 
 
@@ -45,49 +60,108 @@ int main() {
 	printf("init hosts info: %d\n", ret);
 	//END UDP vectors
 
-
 	//UDP ping send & recv
 	//ret = init_send_ping_info(&si, multicast_addr, port_udp);
 	//printf("init send ping: %d\n", ret);
 
-	//ret = init_recv_ping_info(&ri, multicast_addr, port_udp);
-	//printf("init recv ping: %d\n", ret);
+	ret = init_recv_ping_info(&ri, multicast_addr, port_udp);
+	printf("init recv ping: %d\n", ret);
+
+	poll_fds[0].fd = ri.sock;
+	poll_fds[0].events = POLLIN;
+	poll_fds_availability[0] = ARR_UNAVAILABLE;
+	poll_fds_count++;
+
+	while (1) {
+	ret = poll(poll_fds, poll_fds_count, POLL_TIMEOUT * 0); // * 100
+
+		if (poll_fds[0].revents & POLLIN) {
+			ret = recv_ping(&pings, &ri);
+			printf("recv ping: %d\n", ret);
+		}
+
+	}
+
 
 	//ret = send_ping(si, MSG_PING);
 	//printf("send ping: %d\n", ret);
 
-	//ret = recv_ping(&pings, &ri);
-	//printf("recv ping: %d\n", ret);
-
 	//ret = close_send_ping_info(&si);
 	//printf("close send info: %d\n", ret);
 
-	//ret = close_recv_ping_info(&ri);
-	//printf("close recv info: %d\n", ret);
+	ret = close_recv_ping_info(&ri);
+	printf("close recv info: %d\n", ret);
 	//END UDP ping send & recv
 
 
 	//TCP listen & recv
-	//ret = init_conn_listener_info(&cli, port_tcp);
-	//printf("init conn listener: %d\n", ret);
+	/*ret = init_conn_listener_info(&cli, port_tcp);
+	printf("init conn listener: %d\n", ret);
 
-	//while (1) {
-	//	ret = conn_listener(&conns, cli, filepath);
-	//	if (ret == SUCCESS) break;
-	//}
+	poll_fds[0].fd = cli.sock;
+	poll_fds[0].events = POLLIN;
+	poll_fds_availability[0] = ARR_UNAVAILABLE;
+	poll_fds_count++;
 
-	//conn_info_t * ci;
-	//while (1) {
-	//	ret = vector_get_ref(&conns, 0, (char **) &ci);
-	//	ret = conn_recv(ci);
-	//}
+	conn_info_t * ci;
+
+	while (1) {
+
+		ret = poll(poll_fds, poll_fds_count, POLL_TIMEOUT * 0); // * 100
+
+		if (poll_fds[0].revents & POLLIN) {
+			ret = conn_listener(&conns, cli, filepath);
+			if (ret != SUCCESS && ret != FAIL) return ret;
+
+			ret = vector_get_ref(&conns, 0, (char **) &ci);
+			if (ret != SUCCESS) return ret;
+
+			poll_fds[1].fd = ci->sock;
+			poll_fds[1].events = POLLIN;
+			poll_fds_count++;
+		}
+
+		if (poll_fds[1].revents & POLLIN) {
+
+
+			ret = vector_get_ref(&conns, 0, (char **) &ci);
+			if (ret != SUCCESS) return ret;
+
+			ret = conn_recv(ci);
+			if (ret != SUCCESS) return ret;
+			if (ci->status == CONN_STAT_RECV_COMPLETE) break;
+
+		} //end if
+
+	}*/
 	//END TCP connect & listen
 
 	//TCP send
-	//struct sockaddr_in6 addr = {AF_INET6, htons(ports)};
-	//ret = inet_pton(AF_INET6, "2a02:c7f:f6ef:1c00:160e:1304:8cfe:2431", &addr.sin6_addr);
+	/*char * addr_str = "2a02:c7f:f6ef:1c00:160e:1304:8cfe:2431";
+	ret = inet_pton(AF_INET6, addr_str, &send_addr.sin6_addr);
+	ret = conn_initiate(&conns, send_addr, "hello.txt");	
 	
-	//ret = conn_initiate(&conns, addr, "scarlet.txt");
+	conn_info_t * ci;
+	ret = vector_get_ref(&conns, 0, (char **) &ci);
+	if (ret != SUCCESS) return ret;
+
+	poll_fds[0].fd = ci->sock;
+	poll_fds[0].events = POLLOUT;
+	poll_fds_availability[0] = ARR_UNAVAILABLE;
+	poll_fds_count++;
+
+	while (1) {
+
+		ret = poll(poll_fds, poll_fds_count, POLL_TIMEOUT * 0); // * 100
+
+		if (poll_fds[0].revents & POLLOUT) {
+			
+			ret = conn_send(ci);
+			if (ret != SUCCESS) return ret;
+			if (ci->status == CONN_STAT_SEND_COMPLETE) break;
+		}
+
+	}*/
 	//END TCP send
 
 	return 0;

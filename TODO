@@ -1,0 +1,2 @@
+1) Write own daemon PID to /var/run/scarlet.pid (requires root)
+2) Respond to SIGTERM

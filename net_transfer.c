@@ -9,58 +9,74 @@
 #include "error.h"
 
 
+void set_mmap_size(conn_info_t * ci) {
+
+	//Get ci->mmap_size that doesn't leak memory
+	if (((ci->mmap_iter+1) * DF_BLOCK) > ci->f_stat.st_size) {
+		ci->mmap_size = ci->f_stat.st_size - (DF_BLOCK * ci->mmap_iter);
+	} else {
+		ci->mmap_size = DF_BLOCK;
+	}
+	ci->mmap_iter = ci->mmap_iter + 1;
+}
+
+
+size_t get_len(conn_info_t * ci) {
+
+	//Get len that doesn't leak memory
+	size_t len;
+	size_t leftover;
+
+	leftover = ci->mmap_size - ci->mmap_prog;
+	if (leftover > DF_LEN) {
+		len = DF_LEN;
+	} else {
+		len = leftover;
+	}
+	return len;
+}
+
+
 int conn_send(conn_info_t * ci) {
 
 	int ret;
-
-	char * mem_block;
-	size_t mem_block_size = 0;
-	
-	unsigned int buf_size = 0;
-
 	ssize_t rd_wr;
+	size_t len;
+
+	//Check if end of last block reached
+	if (ci->mmap_size == ci->mmap_prog) {
 	
-	//Get mem_block_size that doesn't leak memory
-	if ((ci->send_count+1) * DF_BLOCK > ci->f_stat.st_size) {
-		mem_block_size = ci->f_stat.st_size - (DF_BLOCK * ci->send_count);
-	} else {
-		mem_block_size = DF_BLOCK;
-	}
-
-	//Get memory map
-	mem_block = mmap(NULL, mem_block_size, PROT_READ, MAP_SHARED,
-			         ci->fd, ci->send_count * DF_BLOCK);
-	if (mem_block == MAP_FAILED) { close(ci->sock); return FILE_MMAP_ERR; }
-
-	//Iterate through buffers, sending all of mem_block a buffer at a time
-	for (unsigned int i = 0; i < (mem_block_size / DF_BUF); i++) {
-
-		//If remainder of block is smaller than a buffer
-		if ((mem_block_size - DF_BUF * (i+1)) < DF_BUF) {
-			buf_size = mem_block_size - DF_BUF * i;
-		} else {
-			buf_size = DF_BUF;
+		//Check for end of file
+		if (ci->mmap_size > 0 && ci->mmap_size != DF_BLOCK) {
+			ci->status = CONN_STAT_SEND_COMPLETE;
+			ret = munmap(ci->mmap_addr, ci->mmap_size);
+			close(ci->sock);
+			if (ret == -1 && errno != EINVAL) { return FILE_MMAP_ERR; }
+			return SUCCESS;
 		}
 
-		//Ensure buffer is sent, retry if socket resource unavailable
-		while (1) {
-			rd_wr = send(ci->sock, mem_block + (i * DF_BUF), buf_size, 0);
-			if (rd_wr == -1 && errno == EAGAIN) continue;
-			if (rd_wr == -1) { close(ci->sock); return SOCK_SEND_ERR; }
+		ret = munmap(ci->mmap_addr, ci->mmap_size);
+		if (ret == -1 && errno != EINVAL) {
+			close(ci->sock);
+			return FILE_MMAP_ERR;
 		}
+
+		set_mmap_size(ci);
+		ci->mmap_prog = 0;
+
+		//Assign new mmap
+		ci->mmap_addr = mmap(NULL, ci->mmap_size, PROT_READ,
+				             MAP_SHARED, ci->fd, (ci->mmap_iter-1) * DF_BLOCK);
 	}
 
-	ret = munmap(mem_block, mem_block_size);
-	if (ret == -1) { close(ci->sock); return FILE_MMAP_ERR; }
-
-	//Increment send count for next call
-	ci->send_count = ci->send_count + 1;
-
-	//Check whether end of file has been reached
-	if ((ci->send_count * DF_BLOCK) >= ci->f_stat.st_size) {
+	len = get_len(ci);
+	rd_wr = send(ci->sock, ci->mmap_addr + ci->mmap_prog, len, 0);
+	if (rd_wr == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
 		close(ci->sock);
-		ci->status = CONN_STAT_SEND_COMPLETE;
+		return SOCK_SEND_ERR;
 	}
+
+	ci->mmap_prog = ci->mmap_prog + rd_wr;
 
 	return SUCCESS;
 }
@@ -68,31 +84,26 @@ int conn_send(conn_info_t * ci) {
 
 int conn_recv(conn_info_t * ci) {
 
-	char * recv_buf[DF_BUF] = {};
+	int ret;
 	ssize_t rd_wr;
+	char recv_buf[DF_LEN] = {};
 
-	for (unsigned int i = 0; i < DF_BUF_IN_BLOCK; i++) {
-
-		rd_wr = recv(ci->sock, recv_buf, DF_BUF, 0);
-		
-		//Check for recv errors
-		if (rd_wr == -1 && errno == EAGAIN) { i--; continue; }
-		if (rd_wr == -1) { close(ci->sock); close(ci->fd); return SOCK_RECV_ERR; }
-		
-		//Check for end of transmission
-		if (rd_wr == 0) {
-			close(ci->sock);
-			close(ci->fd);
-			ci->status = CONN_STAT_RECV_COMPLETE;
-			return SUCCESS;
-		}
-
-		//Write buffer to file
-		rd_wr = write(ci->fd, recv_buf, rd_wr);
-		if (rd_wr == -1) { close(ci->sock); close(ci->fd); return FILE_WRITE_ERR; }
+	rd_wr = recv(ci->sock, recv_buf, DF_LEN, 0);
+	if (rd_wr == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
+		close(ci->fd); return SOCK_RECV_ERR;
+	} else if (rd_wr == 0) {
+		close(ci->sock);
+		close(ci->fd);
+		ci->status = CONN_STAT_RECV_COMPLETE;
+		return SUCCESS;
+	}
 	
+	rd_wr = write(ci->fd, recv_buf, rd_wr);
+	if (rd_wr == -1) {
+		close(ci->sock);
+		close(ci->fd);
+		return FILE_WRITE_ERR;
 	}
 
 	return SUCCESS;
-
 }

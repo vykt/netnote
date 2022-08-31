@@ -105,9 +105,10 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 
 		//Set last ping time
 		api->last_ping = time(NULL);
+		return SUCCESS;
 	}
 
-	return SUCCESS;
+	return FAIL;
 }
 
 

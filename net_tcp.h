@@ -35,11 +35,18 @@ struct conn_info {
 	//Conn info
 	int sock;
 	short status;
-	
+	unsigned long 
+
 	//File send/recv info
 	int fd;
-	unsigned int send_count;
+
+	//File send info, present in all connections for convenience
 	struct stat f_stat;
+	char *mmap_addr;
+	unsigned int mmap_iter; //Number of blocks written
+	size_t mmap_size; //Size of block
+	size_t mmap_prog; //Progress through block
+
 };
 
 

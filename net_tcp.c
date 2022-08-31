@@ -13,9 +13,6 @@
 #include "vector.h"
 #include "error.h"
 
-//DEBUG
-#include <stdio.h>
-
 
 /*
  *  conn_initiate() - Called when sending file to specified address.
@@ -29,6 +26,9 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 	int ret;
 	int sock_conn;
 	ssize_t rd_wr;
+	ssize_t rd_wr_total = 0;
+	char filename_buf[NAME_MAX+1] = {};
+	size_t filename_len;
 	conn_info_t ci;
 
 	//Create socket
@@ -42,7 +42,11 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 	//Build conn_info
 	ci.sock = sock_conn;
 	ci.status = CONN_STAT_SEND_INPROG;
-	ci.send_count = 0;
+	
+	ci.mmap_addr = NULL;
+	ci.mmap_size = 0;
+	ci.mmap_prog = 0;
+	ci.mmap_iter = 0;
 
 	//Open file for sending
 	ci.fd = open(file, O_RDONLY);
@@ -53,8 +57,18 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 	if (ret == -1) { close(ci.sock); return FILE_STAT_ERR; }
 
 	//Send filename
-	rd_wr = send(ci.sock, file, strlen(file), 0);
-	if (rd_wr == -1) { close(ci.sock); return SOCK_SEND_NAME_ERR; }
+	strcpy(filename_buf, file);
+	strcat(filename_buf, "/");
+	filename_len = strlen(filename_buf);
+	while (1) {
+		rd_wr = send(ci.sock, filename_buf+rd_wr_total,
+				     strlen(filename_buf)-rd_wr_total, 0);
+
+		if (rd_wr == -1 && errno == EAGAIN ) { continue; }
+		if (rd_wr == -1 ) { close(ci.sock); return SOCK_SEND_NAME_ERR; }
+		rd_wr_total = rd_wr_total + rd_wr;
+		break;
+	}
 
 	//Add to vector of ongoing connections
 	ret = vector_add(conns, 0, (char *) &ci, VECTOR_APPEND_TRUE);
@@ -69,7 +83,11 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	int ret;
 	int sock_conn;
 	ssize_t rd_wr;
+	ssize_t rd_wr_total = 0;
+	char recv_buf[NAME_MAX+1] = {};
+	char recv_buf_total[4096+NAME_MAX+1] = {};
 	char filename[NAME_MAX] = {};
+	int filename_end;
 	conn_info_t * ci;
 	socklen_t addr_len = sizeof(cli.addr);
 	
@@ -82,6 +100,10 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 		return SOCK_RECV_ERR;
 	}
 
+	//Set socket of connection to not block
+	ret = fcntl(sock_conn, F_SETFL, fcntl(sock_conn, F_GETFL, 0) | O_NONBLOCK);
+	if (ret == -1) { close(sock_conn); return SOCK_OPT_ERR; }
+
 	//Initialise conn
 	ret = vector_add(conns, 0, NULL, VECTOR_APPEND_TRUE);
 	if (ret != SUCCESS) return ret;
@@ -91,19 +113,72 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	ci->status = CONN_STAT_RECV_INPROG;
 
 	//Wait to receive filename
-	rd_wr = recv(ci->sock, filename, NAME_MAX, 0);
-	if (rd_wr <= 0) {
-		close(ci->sock);
-		ret = vector_rmv(conns, conns->length - 1);
-		if (ret != SUCCESS) return CRITICAL_ERR;
+	int recv_inprog = 1;
+	while (recv_inprog) {
+		
+		rd_wr = recv(ci->sock, recv_buf, NAME_MAX+1, 0);
+		
+		//For every received character
+		for (int i = 0; i < rd_wr; i++) {
+			
+			//If filename end found
+			if (recv_buf[i] == '/') {
 
-		return SOCK_RECV_NAME_ERR;
-	}
+				//if name length exceeds NAME_MAX
+				if ((strlen(recv_buf_total) + i) > NAME_MAX) {
+					close(ci->sock);
+					ret = vector_rmv(conns, conns->length - 1);
+					if (ret != SUCCESS) return CRITICAL_ERR;
+					return SOCK_RECV_NAME_ERR;
+				}
+
+				strcat(filename, recv_buf_total);
+				strncat(filename, recv_buf, i);
+				filename_end = strlen(recv_buf_total) + i;
+				recv_inprog = 0;
+				break;
+
+			} //End if filename end found
+		} //End for every received character
+
+		rd_wr_total = rd_wr_total + rd_wr;
+		if (rd_wr_total <= 4096) {
+			strcat(recv_buf_total, recv_buf);
+		} else {
+			close(ci->sock);
+			ret = vector_rmv(conns, conns->length - 1);
+			if (ret != SUCCESS) return CRITICAL_ERR;
+			return SOCK_RECV_NAME_ERR;
+		}
+	} //End wait to receive filename
 
 	//Now, create file at /dir/filename
 	strcat(dir, filename);
 	ci->fd = open(dir, O_WRONLY | O_CREAT, 0644);
-	if (ci->fd == -1) { close(ci->sock); return FILE_OPEN_ERR; }
+	if (ci->fd == -1) { 
+		close(ci->sock);
+		ret = vector_rmv(conns, conns->length - 1);
+		if (ret != SUCCESS) return CRITICAL_ERR;
+		return FILE_OPEN_ERR;
+	}
+
+	//Finally, write the remainder of received buffer into the file if needed.
+	int left_bytes = strlen(recv_buf_total) - filename_end - 1;
+	if (left_bytes) {
+		rd_wr_total = 0;
+		while(1) {
+			rd_wr = write(ci->fd, recv_buf_total+filename_end+1,
+						strlen(recv_buf_total)-filename_end-1);
+			if (rd_wr == -1) {
+				close(ci->sock);
+				ret = vector_rmv(conns, conns->length - 1);
+				if (ret != SUCCESS) return CRITICAL_ERR;
+				return FILE_WRITE_ERR;
+			}
+			rd_wr_total = rd_wr_total + rd_wr;
+			if (rd_wr_total >= left_bytes) break;
+		}
+	} //End write remainder of received bytes
 
 	return SUCCESS;
 }
@@ -115,8 +190,7 @@ int init_conn_listener_info(conn_listener_info_t * cli, unsigned short port) {
 	int reuse = 1;
 
 	//Create socket
-	cli->sock = socket(AF_INET6, SOCK_STREAM, 0);
-	//cli->sock = socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0);
+	cli->sock = socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	if (cli->sock == -1) return SOCK_OPEN_ERR;
 
 	//Create listening addr & bind
