@@ -35,7 +35,6 @@ struct conn_info {
 	//Conn info
 	int sock;
 	short status;
-	unsigned long 
 
 	//File send/recv info
 	int fd;
