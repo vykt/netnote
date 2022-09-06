@@ -24,22 +24,27 @@
 #define SOCK_SEND_NAME_ERR 14
 #define SOCK_RECV_ERR 15
 #define SOCK_RECV_NAME_ERR 16
+#define SOCK_RECV_REQ_ERR 17
 
-#define SOCK_EXIT_UNKNOWN_ERR 17
+#define SOCK_EXIT_UNKNOWN_ERR 18
 
 //conn_udp.h - special cases
-#define SOCK_RECV_EXIT_ERR 18
+#define SOCK_RECV_EXIT_ERR 19
 
 //conn_transfer.h
-#define FILE_OPEN_ERR 19
-#define FILE_STAT_ERR 20
-#define FILE_MMAP_ERR 21
-#define FILE_WRITE_ERR 22
+#define FILE_OPEN_ERR 20
+#define FILE_STAT_ERR 21
+#define FILE_MMAP_ERR 22
+#define FILE_WRITE_ERR 23
 
 //config.h
-#define CONF_ADDR_ERR 23
+#define CONF_ADDR_ERR 24
+
+//daemon.h
+#define DAEMON_FORK_ERR 25
+#define DAEMON_UN_SOCK_ERR 26
 
 //critical errors
-#define CRITICAL_ERR 24
+#define CRITICAL_ERR 27
 
 #endif

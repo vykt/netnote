@@ -1,3 +1,5 @@
+#include "daemon.h"
+#include "request.h"
 #include "net_transfer.h"
 #include "net_tcp.h"
 #include "net_udp.h"
@@ -52,35 +54,72 @@ int main() {
 	//End testing variables
 
 
-	//UDP vectors
-	ret = vector_ini(&pings, sizeof(addr_ping_info_t));
-	printf("init ping info:  %d\n", ret);
+	//Daemon
+	ret = init_daemon();
 
-	ret = vector_ini(&conns, sizeof(conn_info_t));
-	printf("init hosts info: %d\n", ret);
+	//End Daemon
+
+
+	//Request send
+	/*req_info_t rsi;
+	ret = init_req(&rsi, 0, "hello.txt");
+	ret = req_send(&rsi);*/
+	//End request send
+	
+	//Request receive
+	/*req_listener_info_t rli;
+	ret = init_req_listener(&rli);
+	
+	poll_fds[0].fd = rli.sock;
+	poll_fds[0].events = POLLIN;
+	poll_fds_availability[0] = ARR_UNAVAILABLE;
+	poll_fds_count++;
+
+	while (1) {
+		ret = poll(poll_fds, poll_fds_count, POLL_TIMEOUT * 0); // * 100
+
+		if (poll_fds[0].revents & POLLIN) {
+			printf("Running poll\n");
+			ret = req_receive(&rli);
+			//Now, process request inside daemon
+			break;
+		}
+	}
+	ret = close_req_listener(&rli);
+	if (ret != SUCCESS);
+	*/
+	//End request receive
+
+
+	//UDP vectors
+	//ret = vector_ini(&pings, sizeof(addr_ping_info_t));
+	//printf("init ping info:  %d\n", ret);
+
+	//ret = vector_ini(&conns, sizeof(conn_info_t));
+	//printf("init hosts info: %d\n", ret);
 	//END UDP vectors
 
 	//UDP ping send & recv
 	//ret = init_send_ping_info(&si, multicast_addr, port_udp);
 	//printf("init send ping: %d\n", ret);
 
-	ret = init_recv_ping_info(&ri, multicast_addr, port_udp);
-	printf("init recv ping: %d\n", ret);
+	//ret = init_recv_ping_info(&ri, multicast_addr, port_udp);
+	//printf("init recv ping: %d\n", ret);
 
-	poll_fds[0].fd = ri.sock;
-	poll_fds[0].events = POLLIN;
-	poll_fds_availability[0] = ARR_UNAVAILABLE;
-	poll_fds_count++;
+	//poll_fds[0].fd = ri.sock;
+	//poll_fds[0].events = POLLIN;
+	//poll_fds_availability[0] = ARR_UNAVAILABLE;
+	//poll_fds_count++;
 
-	while (1) {
-	ret = poll(poll_fds, poll_fds_count, POLL_TIMEOUT * 0); // * 100
+	//while (1) {
+	//ret = poll(poll_fds, poll_fds_count, POLL_TIMEOUT * 0); // * 100
 
-		if (poll_fds[0].revents & POLLIN) {
-			ret = recv_ping(&pings, &ri);
-			printf("recv ping: %d\n", ret);
-		}
+	//	if (poll_fds[0].revents & POLLIN) {
+	//		ret = recv_ping(&pings, &ri);
+	//		printf("recv ping: %d\n", ret);
+	//	}
 
-	}
+	//}
 
 
 	//ret = send_ping(si, MSG_PING);
@@ -89,8 +128,8 @@ int main() {
 	//ret = close_send_ping_info(&si);
 	//printf("close send info: %d\n", ret);
 
-	ret = close_recv_ping_info(&ri);
-	printf("close recv info: %d\n", ret);
+	//ret = close_recv_ping_info(&ri);
+	//printf("close recv info: %d\n", ret);
 	//END UDP ping send & recv
 
 

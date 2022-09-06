@@ -22,6 +22,8 @@ typedef struct req_info req_info_t;
 struct req_listener_info {
 
 	int sock;
+	int target_host_id;
+	char file[PATH_MAX];
 
 };
 
@@ -32,6 +34,14 @@ struct req_info {
 	char file[PATH_MAX];
 	char reply[REQ_REPLY_SIZE];
 };
+
+
+int req_send(req_info_t * ri);
+int req_receive(req_listener_info_t * rli);
+
+int init_req(req_info_t * ri, int target_host_id, char * file);
+int init_req_listener(req_listener_info_t * rli);
+int close_req_listener(req_listener_info_t * rli);
 
 
 #endif

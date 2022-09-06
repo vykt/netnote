@@ -1,2 +1,5 @@
+0) mkdir /var/run/scarlet/ if doesn't exist
+0.5) Set mask of sock to let group members write
 1) Write own daemon PID to /var/run/scarlet.pid (requires root)
 2) Respond to SIGTERM
+3) Add logging functionality
