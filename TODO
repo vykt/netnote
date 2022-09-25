@@ -1,5 +1,10 @@
-0) mkdir /var/run/scarlet/ if doesn't exist
-0.5) Set mask of sock to let group members write
-1) Write own daemon PID to /var/run/scarlet.pid (requires root)
-2) Respond to SIGTERM
-3) Add logging functionality
+1) Set permissions of sock to let group members write
+2) Figure out how to make scarlet.pid have proper permissions
+3) Make socket have permissions of 660
+4) Respond to SIGTERM
+
+
+TO TEST:
+
+2) Socket peer is successfully identified.
+3) Request sending / receiving still works.

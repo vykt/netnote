@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <linux/limits.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <errno.h>
 
 #include <sys/socket.h>
@@ -12,7 +14,6 @@
 
 #include "request.h"
 #include "error.h"
-
 
 /* TODO
  *
@@ -25,6 +26,48 @@
  *  Check user credentials using SO_PEERCRED, seteuid(2) to their UID, perform
  *  command, return to root permissions.
  */
+
+
+//Check user credentials for file, refuse send if authorisation not met
+int req_authorise(char * request_path, req_cred_t * rc) {
+
+	int ret;
+	int fd;
+	int fail = 0;
+	uid_t def_uid;
+	gid_t def_gid;
+
+	//Get & save current uid
+	def_uid = getuid();
+	def_gid = getgid();
+
+	//Set euid
+	ret = seteuid(rc->uid);
+	if (ret == -1) return REQUEST_PERM_ERR;
+
+	ret = setegid(rc->gid);
+	if (ret == -1) return REQUEST_PERM_ERR;
+
+	//Attempt to open file for reading
+	fd = open(request_path, O_RDONLY);
+	if (fd == -1 && errno == EEXIST) fail = 1; //return REQUEST_FILE_EXIST_ERR;
+	if (fd == -1 && errno == EACCES) fail = 2; //return REQUEST_PERM_ERR;
+	close(fd);
+
+	//Set euid back to default
+	ret = seteuid(def_uid);
+	if (ret == -1) return CRITICAL_ERR;
+	ret = setegid(def_gid);
+	if (ret == -1) return CRITICAL_ERR;
+
+	if (fail == 1) {
+		return REQUEST_FILE_EXIST_ERR;
+	} else if (fail == 2) {
+		return REQUEST_PERM_ERR;
+	}
+
+	return SUCCESS;
+}
 
 
 //Used by client, socket blocks
@@ -77,16 +120,22 @@ int req_send(req_info_t * ri) {
 
 
 //Used by daemon. Listening socket doesn't block, communicating socket does block
-int req_receive(req_listener_info_t * rli) {
+int req_receive(req_listener_info_t * rli, req_cred_t * rc) {
 
 	int ret;
 	int sock_conn;
 	ssize_t rd_wr;
 	long num_buf;
-	
+	struct ucred cred;
+	socklen_t len = sizeof(cred);
+
 	char request[PATH_MAX+4] = {};
 	char * request_id;
 	char * request_path;
+
+	char * perm_err_response = "perm_err";
+	char * file_exist_err_response = "file_exist_err";
+	char * successful_response = "success";
 
 	//Try listen
 	sock_conn = accept(rli->sock, NULL, NULL);
@@ -97,6 +146,16 @@ int req_receive(req_listener_info_t * rli) {
 		return SOCK_RECV_ERR;
 	}
 
+	//Get UID of unix socket peer
+	ret = getsockopt(sock_conn, SOL_SOCKET, SO_PEERCRED, &cred, &len);
+	if (ret == -1) {
+		close(sock_conn);
+		return SOCK_CRED_ERR;
+	}
+
+	rc->uid = cred.uid;
+	rc->gid = cred.gid;
+
 	//Receive request
 	rd_wr = recv(sock_conn, request, PATH_MAX+4, 0);
 	if (rd_wr <= 0) { close(sock_conn); return SOCK_RECV_ERR; }
@@ -104,6 +163,25 @@ int req_receive(req_listener_info_t * rli) {
 	//Process request
 	request_id = strtok(request, "\\");
 	request_path = strtok(NULL, "\\");
+	
+	//Test permissions
+	ret = req_authorise(request_path, rc);
+	
+	//If permissions insufficient
+	if (ret == REQUEST_PERM_ERR) {
+		rd_wr = send(sock_conn, perm_err_response,
+				     strlen(perm_err_response), 0);
+		if (rd_wr == -1) { close(sock_conn); return SOCK_SEND_ERR; }
+		close(sock_conn);
+		return FAIL;
+	//if file doesn't exist
+	} else if (ret == REQUEST_FILE_EXIST_ERR) {
+		rd_wr = send(sock_conn, file_exist_err_response,
+				     strlen(file_exist_err_response), 0);
+		if (rd_wr == -1) { close(sock_conn); return SOCK_SEND_ERR; }
+		close(sock_conn);
+		return FAIL;
+	}
 
 	//Set listener info to received request
 	strcpy(rli->file, request_path);
@@ -112,15 +190,16 @@ int req_receive(req_listener_info_t * rli) {
 	
 	rli->target_host_id = ret;
 
-	//Close socket
-	ret = close(sock_conn);
-	if (ret == -1) return CRITICAL_ERR;
+	//Notify sender request is successful, is being processed
+	rd_wr = send(sock_conn, successful_response, strlen(successful_response), 0);
+	if (rd_wr == -1) { close(sock_conn); return SOCK_SEND_ERR; }
 
+	ret = close(sock_conn);
 	return SUCCESS;
 }
 
 
-
+//Initialise request struct for daemon listener
 int init_req(req_info_t * ri, int target_host_id, char * file) {
 
 	ri->target_host_id = target_host_id;
@@ -130,6 +209,7 @@ int init_req(req_info_t * ri, int target_host_id, char * file) {
 }
 
 
+//Start daemon listener for requests
 int init_req_listener(req_listener_info_t * rli) {
 
 	int ret;
@@ -151,10 +231,15 @@ int init_req_listener(req_listener_info_t * rli) {
 	addr.sun_family = AF_UNIX;
 	strcpy(addr.sun_path, sock_path);
 
-	//Bind & listen
+	//Bind
 	ret = bind(rli->sock, (struct sockaddr *) &addr, sizeof(addr));
 	if (ret == -1) { close(rli->sock); return SOCK_BIND_ERR; }
 
+	//Change socket permissions
+	ret = chmod("/var/run/scarlet/sock", 0666); //TODO TODO TODO change to 0660
+	if (ret == -1) return SOCK_BIND_ERR;
+
+	//Listen
 	ret = listen(rli->sock, REQ_BACKLOG);
 	if (ret == -1) { close(rli->sock); return SOCK_LISTEN_ERR; }
 	
@@ -162,6 +247,7 @@ int init_req_listener(req_listener_info_t * rli) {
 }
 
 
+//Close daemon listener for requests
 int close_req_listener(req_listener_info_t * rli) {
 
 	int ret;

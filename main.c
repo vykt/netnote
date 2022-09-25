@@ -1,3 +1,5 @@
+#include "log.h"
+#include "config.h"
 #include "daemon.h"
 #include "request.h"
 #include "net_transfer.h"
@@ -8,6 +10,7 @@
 
 //TODO debug
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <linux/limits.h>
@@ -24,7 +27,7 @@
 #define ARR_AVAILABLE 1
 #define ARR_UNAVAILABLE 0
 
-#define POLL_TIMEOUT 5 //Tenth's of a second
+#define POLL_TIMEOUT 5 // 1 = Tenth of a second
 
 
 int main() {
@@ -51,12 +54,40 @@ int main() {
 	struct pollfd poll_fds[CONN_MAX] = {};
 	int poll_fds_availability[CONN_MAX] = {ARR_AVAILABLE};
 	unsigned short poll_fds_count = 0;
+	
+	char * config_path = "opts.conf";
+	char * options_arr;
 	//End testing variables
+
+
+	//Log
+	//ret = log_err(TCP_ERR_LOG, "uwu::0", NULL);
+	//ret = log_act(DROP_CONN_ACT, "owo::0", NULL);
+	//End log
+
+
+	//Config
+	/*options_arr = malloc((PATH_MAX + CONF_OPTION_SIZE) * CONF_OPTION_NUM);
+	ret = config_read("opts.conf", options_arr);
+
+
+	char opt0[PATH_MAX] = {};
+	char opt1[PATH_MAX] = {};
+	char opt2[PATH_MAX] = {};
+	char opt3[PATH_MAX] = {};
+
+	char * test_str = "hello, world!\n";
+	strncpy(opt0, options_arr+(0 * PATH_MAX), PATH_MAX);
+	strncpy(opt1, options_arr+(1 * PATH_MAX), PATH_MAX);
+	strncpy(opt2, options_arr+(2 * PATH_MAX), PATH_MAX);
+	strncpy(opt3, options_arr+(3 * PATH_MAX), PATH_MAX);
+
+	free(options_arr);*/
+	//End config
 
 
 	//Daemon
 	ret = init_daemon();
-
 	//End Daemon
 
 
@@ -67,7 +98,8 @@ int main() {
 	//End request send
 	
 	//Request receive
-	/*req_listener_info_t rli;
+	req_listener_info_t rli;
+	req_cred_t rc;
 	ret = init_req_listener(&rli);
 	
 	poll_fds[0].fd = rli.sock;
@@ -80,14 +112,13 @@ int main() {
 
 		if (poll_fds[0].revents & POLLIN) {
 			printf("Running poll\n");
-			ret = req_receive(&rli);
+			ret = req_receive(&rli, &rc);
 			//Now, process request inside daemon
 			break;
 		}
 	}
 	ret = close_req_listener(&rli);
 	if (ret != SUCCESS);
-	*/
 	//End request receive
 
 
