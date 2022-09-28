@@ -1,10 +1,9 @@
-1) Set permissions of sock to let group members write
-2) Figure out how to make scarlet.pid have proper permissions
-3) Make socket have permissions of 660
-4) Respond to SIGTERM
+1) Write logic for daemon
+	-Consider getting SIGTERM responder to set a global variable, telling main loop
+	 to exit and clean up nicely.
+
+2) Create client
+3) Write main function, take command line opts
 
 
 TO TEST:
-
-2) Socket peer is successfully identified.
-3) Request sending / receiving still works.

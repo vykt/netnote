@@ -41,11 +41,11 @@ int req_authorise(char * request_path, req_cred_t * rc) {
 	def_uid = getuid();
 	def_gid = getgid();
 
-	//Set euid
-	ret = seteuid(rc->uid);
-	if (ret == -1) return REQUEST_PERM_ERR;
-
+	//Set euid & egid	
 	ret = setegid(rc->gid);
+	if (ret == -1) return REQUEST_PERM_ERR;
+	
+	ret = seteuid(rc->uid);
 	if (ret == -1) return REQUEST_PERM_ERR;
 
 	//Attempt to open file for reading
@@ -95,7 +95,7 @@ int req_send(req_info_t * ri) {
 	strcpy(addr.sun_path, sock_path);
 
 	//Build request
-	sprintf(itoa_buf, "%d", ri->target_host_id);
+	sprintf(itoa_buf, "%d", ri->target_host_id + 1);
 	strcat(request, itoa_buf);
 	strcat(request, "\\");
 	strcat(request, ri->file);
@@ -188,7 +188,7 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc) {
 	ret = atoi(request_id);
 	if (ret == 0) return SOCK_RECV_REQ_ERR;
 	
-	rli->target_host_id = ret;
+	rli->target_host_id = ret - 1;
 
 	//Notify sender request is successful, is being processed
 	rd_wr = send(sock_conn, successful_response, strlen(successful_response), 0);
@@ -252,6 +252,8 @@ int close_req_listener(req_listener_info_t * rli) {
 
 	int ret;
 	ret = close(rli->sock);
+	if (ret == -1) return SOCK_CLOSE_ERR;
+	ret = remove("/var/run/scarlet/sock");
 	if (ret == -1) return SOCK_CLOSE_ERR;
 	return SUCCESS;
 }

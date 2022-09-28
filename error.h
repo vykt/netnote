@@ -2,6 +2,7 @@
 #define ERROR_H
 
 
+//RETURNS
 #define SUCCESS 0
 #define FAIL 1
 
@@ -50,15 +51,24 @@
 
 //daemon.h, request.h
 #define DAEMON_FORK_ERR 31
-#define DAEMON_UN_SOCK_ERR 32
-#define DAEMON_PID_WRITE_ERR 33
+#define DAEMON_HANDLER_ERR 32
+#define DAEMON_UN_SOCK_ERR 33
+#define DAEMON_PID_WRITE_ERR 34
 
 //log.h
-#define LOG_PATH_ERR 34
-#define LOG_ERR_ERR 35
-#define LOG_ACT_ERR 36
+#define LOG_PATH_ERR 35
+#define LOG_ERR_ERR 36
+#define LOG_ACT_ERR 37
 
 //critical errors
-#define CRITICAL_ERR 37
+#define CRITICAL_ERR 38
+
+
+//EXITS
+#define EXIT_NORMAL 0
+#define EXIT_ERR 1
+#define EXIT_SIGTERM_NORMAL 0
+#define EXIT_SIGTERM_ERR 1
+
 
 #endif

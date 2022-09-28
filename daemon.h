@@ -2,9 +2,9 @@
 #define DAEMON_H
 
 
-int main_daemon();
+int term_handler();
+void main_daemon();
 int init_daemon();
-int close_daemon();
 
 
 #endif
