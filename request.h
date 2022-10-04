@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <linux/limits.h>
 
+#include "vector.h"
 
 /*
  *	REQUESTS:
@@ -44,7 +45,7 @@ struct req_info {
 
 
 int req_send(req_info_t * ri);
-int req_receive(req_listener_info_t * rli, req_cred_t * rc);
+int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings);
 
 int init_req(req_info_t * ri, int target_host_id, char * file);
 int init_req_listener(req_listener_info_t * rli);

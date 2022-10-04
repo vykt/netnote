@@ -13,6 +13,7 @@
 #include <sys/un.h>
 
 #include "request.h"
+#include "vector.h"
 #include "error.h"
 
 /* TODO
@@ -22,6 +23,8 @@
  *
  *	Request format:
  *		"destination ID\file path"
+ *				   OR
+ *		"list"
  *
  *  Check user credentials using SO_PEERCRED, seteuid(2) to their UID, perform
  *  command, return to root permissions.
@@ -94,13 +97,17 @@ int req_send(req_info_t * ri) {
 	addr.sun_family = AF_UNIX;
 	strcpy(addr.sun_path, sock_path);
 
-	//Build request
+	//Check request type
 	sprintf(itoa_buf, "%d", ri->target_host_id + 1);
-	strcat(request, itoa_buf);
-	strcat(request, "\\");
-	strcat(request, ri->file);
 
-	//TODO remember to remove perror() when done testing
+	//Build request
+	if(itoa_buf == 0) {
+		strcat(request, "list");
+	} else {
+		strcat(request, itoa_buf);
+		strcat(request, "\\");
+		strcat(request, ri->file);
+	}
 
 	//Connect
 	ret = connect(ri->sock, (struct sockaddr *) &addr, sizeof(addr));
@@ -120,16 +127,20 @@ int req_send(req_info_t * ri) {
 
 
 //Used by daemon. Listening socket doesn't block, communicating socket does block
-int req_receive(req_listener_info_t * rli, req_cred_t * rc) {
+int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 
 	int ret;
 	int sock_conn;
 	ssize_t rd_wr;
 	long num_buf;
 	struct ucred cred;
+	addr_ping_info_t * pi;
 	socklen_t len = sizeof(cred);
 
 	char request[PATH_MAX+4] = {};
+	char reply[PATH_MAX+4] = {};
+	char addr_buf[64] = {};
+	char num_buf[16] = {};
 	char * request_id;
 	char * request_path;
 
@@ -162,6 +173,35 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc) {
 
 	//Process request
 	request_id = strtok(request, "\\");
+
+	//If asking for list
+	ret = strcmp(request_id, "list");	
+	if (!ret) {
+
+		//For every ping, build line of response message
+		for (int i = 0; i < pings->length; i++) {
+
+			ret = vector_get_ref(pings, i, pi);
+			if (ret != SUCCESS) { close(sock_conn); return ret; }
+
+			sprintf(num_buf, "%d : ", i);
+			strcat(num_buf, reply);
+			addr_buf = inet_ntop(AF_INET6, pi->addr, addr_buf, strlen(addr_buf));
+			if (addr_buf == NULL) { close(sock_conn); return REQUEST_GENERIC_ERR; }
+			strcat(addr_buf, reply);
+			strcat("\n", reply);
+
+		}
+		
+		//Send reply to caller
+		rd_wr = send(sock_conn, reply, strlen(reply), 0);
+		if (rd_wr == -1) { close(sock_conn); return SOCK_SEND_ERR; }
+
+		close(sock_conn);
+		return SUCCESS;
+	}
+
+	//if asking for send
 	request_path = strtok(NULL, "\\");
 	
 	//Test permissions

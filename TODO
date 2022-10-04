@@ -1,9 +1,8 @@
-1) Write logic for daemon
-	-Consider getting SIGTERM responder to set a global variable, telling main loop
-	 to exit and clean up nicely.
-
-2) Create client
-3) Write main function, take command line opts
+1) Create client
+2) Write main function, take command line opts
 
 
-TO TEST:
+FUTURE:
+
+Make error logging better, current logs are very vague.
+

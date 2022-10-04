@@ -10,10 +10,8 @@
 #include "error.h"
 
 
-//Log format: '[22/09/2022 - 09:16:23] <message>'
 
-
-int log_err(int err_id, char * addr, char * file) {
+int log_err(int err_id, char * id, char * file) {
 
 	int ret;
 	size_t rret;
@@ -33,8 +31,11 @@ int log_err(int err_id, char * addr, char * file) {
 		"Internal vector error has occured.\n",
 		"Internal memory error has occured.\n",
 		"Daemon encountered a critical error, shutting down...\n",
+		"Daemon failed to read config, shutting down...\n",
+		"UNIX sock error has occured.\n",
 		"UDP sock error has occured.\n",
-		"TCP sock error has occured with peer at %s.\n",
+		"TCP sock error has occured with peer with id %s.\n",
+		"Request to peer with id %d did not complete successfully.\n",
 		"File transmission error has occured with peer at %s while transferring file %s.\n",
 		"File receiving error has occured with peer at %s while transferring file %s.\n"
 	};
@@ -65,12 +66,12 @@ int log_err(int err_id, char * addr, char * file) {
 	strcat(log_buf, log_time_buf);
 	strcat(log_buf, "] ");
 
-	if (err_id <= 3) {
+	if (err_id <= 5) {
 		sprintf(log_msg_buf, err_messages[err_id]);
-	} else if (err_id <= 4) {
-		sprintf(log_msg_buf, err_messages[err_id], addr);
+	} else if (err_id <= 6) {
+		sprintf(log_msg_buf, err_messages[err_id], id);
 	} else {
-		sprintf(log_msg_buf, err_messages[err_id], addr, file);
+		sprintf(log_msg_buf, err_messages[err_id], id, file);
 	}
 
 	strcat(log_buf, log_msg_buf);
@@ -89,7 +90,7 @@ int log_err(int err_id, char * addr, char * file) {
 }
 
 
-int log_act(int act_id, char * addr, char * file) {
+int log_act(int act_id, char * id, char * file) {
 
 	int ret;
 	size_t rret;
@@ -144,9 +145,9 @@ int log_act(int act_id, char * addr, char * file) {
 	if (act_id <= 2) {
 		sprintf(log_msg_buf, log_messages[act_id]);
 	} else if (act_id <= 4) {
-		sprintf(log_msg_buf, log_messages[act_id], addr);
+		sprintf(log_msg_buf, log_messages[act_id], id);
 	} else {
-		sprintf(log_msg_buf, log_messages[act_id], addr, file);
+		sprintf(log_msg_buf, log_messages[act_id], id, file);
 	}
 
 	strcat(log_buf, log_msg_buf);
