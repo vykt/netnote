@@ -1,7 +1,14 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <getopt.h>
 
+#include <linux/limits.h>
+
+#include "daemon.h"
+#include "request.h"
+#include "error.h"
 
 int main(int argc, char ** argv) {
 
@@ -9,8 +16,15 @@ int main(int argc, char ** argv) {
 	// -s, --send <filename> <peer id>	: send filename
 	// -l, --list						: list peers and their ids
 
+	int ret;
 	int opt;
 	int opt_index;
+	int peer_id = 0;
+	char file[PATH_MAX] = {};
+	uid_t check_root;
+	FILE * check_pid;
+	req_info_t ri;
+
 	struct option long_opts[] = {
 		{"daemon", no_argument, NULL, 'd'},
 		{"send", required_argument, NULL, 's'},
@@ -22,25 +36,58 @@ int main(int argc, char ** argv) {
 
 		switch (opt) {
 
+			//Daemon option
 			case 'd':
-				printf("daemon called\n");
+				//Check running as root
+				check_root = getuid();
+				if (check_root) {
+					printf("Please run the daemon as root.\n");
+					return FAIL;
+				}
+				//Check if daemon is running
+				check_pid = fopen("/var/run/scarlet.pid", "r");
+				if (check_pid) {
+					printf("/var/run/scarlet.pid present, assuming daemon already running.\n");
+					return FAIL;
+				}
+				main_daemon();
 				break;
+
+			//Send option
 			case 's':
-				printf("send called\n");
+				//int x = optind - 1;	
+				if (argv[optind-1] == NULL) {
+					printf("Use: scarlet -s <filename> <peer id>\n");
+					return FAIL;
+				}
+				strcpy(file, argv[optind-1]);	
+				if (argv[optind] == NULL) {
+					printf("Use: scarlet -s <filename> <peer id>\n");
+					return FAIL;
+				}
+				peer_id = atoi(argv[optind]);
+
+				ret = init_req(&ri, peer_id, file);
+				if (ret != SUCCESS) {
+					printf("An error occured. Check error log for details.\n");
+					return FAIL;
+				}
+
+				ret = req_send(&ri);
+				if (ret != SUCCESS) {
+					printf("An error occured. Check error log for details.\n");
+					return FAIL;
+				}
+
+				//TODO send request
 				break;
+
+			//List function
 			case 'l':
-				printf("list called\n");
+				
 				break;
-
-
 		}
-
 	}
 
-
-
-
-	//Parse command line options
-	
-
+	return SUCCESS;
 }

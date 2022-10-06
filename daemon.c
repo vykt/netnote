@@ -31,7 +31,7 @@ int terminate = 0;
 
 
 //Respond to SIGTERM
-int term_handler(int signum) {
+void term_handler(int signum) {
 
 	int ret;
 
@@ -43,7 +43,7 @@ int term_handler(int signum) {
 	ret = remove("/var/run/scarlet/sock");
 	if (ret == -1) exit(EXIT_ERR);
 
-	return EXIT_SIGTERM_NORMAL;
+	exit(EXIT_SIGTERM_NORMAL);
 }
 
 
@@ -87,6 +87,7 @@ int poll_fds_remove(struct pollfd poll_fds[CONN_MAX],
 void main_daemon() {
 
 	int ret;
+	char err_buf[16] = {0};
 	
 	//Networking data
 	send_ping_info_t si;
@@ -95,6 +96,7 @@ void main_daemon() {
 	conn_info_t * ci;
 	conn_info_t * vci;
 	addr_ping_info_t pi;
+	addr_ping_info_t * ppi = &pi;
 	struct sockaddr_in6 send_addr;
 	struct sockaddr_in6 recv_addr;
 	vector_t pings;
@@ -191,7 +193,6 @@ void main_daemon() {
 			if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
 
 			vci->sock = ci->sock;
-			vci->addr = ci->addr;
 
 			poll_fds[poll_fds_count].fd = vci->sock;
 			poll_fds[poll_fds_count].events = POLLIN;
@@ -208,8 +209,11 @@ void main_daemon() {
 				ret = vector_get_ref(&conns, i-3, (char **) &vci);
 				if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
 
-				ret = conn_recv(vci);
-				if (ret != SUCCESS) log_err(TCP_ERR_LOG, i, NULL);
+				ret = conn_recv(vci); //TODO convert i to char *
+				if (ret != SUCCESS) {
+					sprintf(err_buf, "%d", i);
+					log_err(TCP_ERR_LOG, err_buf, NULL);
+				}
 
 				if (vci->status == CONN_STAT_RECV_COMPLETE) {
 
@@ -229,7 +233,10 @@ void main_daemon() {
 				if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
 
 				ret = conn_send(vci);
-				if (ret != SUCCESS) log_err(TCP_ERR_LOG, i, NULL);
+				if (ret != SUCCESS) {
+					sprintf(err_buf, "%d", i);
+					log_err(TCP_ERR_LOG, err_buf, NULL);
+				}
 
 				if (vci->status == CONN_STAT_SEND_COMPLETE) {
 					
@@ -237,7 +244,7 @@ void main_daemon() {
 					if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
 
 					ret = poll_fds_remove(poll_fds, poll_fds_count, i);
-					if (ret != SUCCESS) log_err(CRIT_ERR_LOG);
+					if (ret != SUCCESS) log_err(CRIT_ERR_LOG, NULL, NULL);
 					--poll_fds_count;
 				}
 
@@ -246,21 +253,25 @@ void main_daemon() {
 
 		//Request listener
 		if (poll_fds[REQ_LISTENER].revents & POLLIN) {
-			ret = req_receive(&rli, &rc);
-			if (ret != SUCCESS && ret != FAIL) log_err(UNIX_ERR_LOG);
+			ret = req_receive(&rli, &rc, &pings);
+			if (ret != SUCCESS && ret != FAIL) log_err(UNIX_ERR_LOG, NULL, NULL);
 			
 			//If request was unsuccessful / unauthorised
 			if (ret == FAIL) {
-				log_err(REQ_ERR_LOG, rli.target_host_id, NULL);
-			
+				sprintf(err_buf, "%d", rli.target_host_id);
+				log_err(REQ_ERR_LOG, err_buf, NULL);
+				
+
 			//If request was successful, initiate connection with target
 			} else if (ret == SUCCESS) {
 			
-				ret = vector_get_ref(&pings, rli, &pi);
+				ret = vector_get_ref(&pings, (unsigned long) rli.target_host_id, 
+									 (char **) &ppi);
 				if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
 				ret = conn_initiate(&conns, pi.addr, rli.file);
 				if (ret != SUCCESS) {
-					log_err(TCP_ERR_LOG, rli.target_host_id, NULL);
+					sprintf(err_buf, "%d", rli.target_host_id);
+					log_err(TCP_ERR_LOG, err_buf, NULL);
 				}
 			//If request function encountered an error
 			} else {
@@ -282,14 +293,14 @@ void main_daemon() {
 	 */
 	
 	//Request cleanup
-	close(req_listener(&rli);
+	close(rli.sock);
 	ret = term();
-	if (ret != SUCCESS) { free(options_arr); return DAEMON_CLEANUP_ERR; }
+	if (ret != SUCCESS) { free(options_arr); exit(DAEMON_CLEANUP_ERR); }
 
 	//Config cleanup
 	free(options_arr);
 
-	return SUCCESS;
+	exit(SUCCESS);
 }
 
 

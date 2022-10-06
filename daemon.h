@@ -12,7 +12,7 @@
 #define CONN_MAX 32
 
 
-int term_handler();
+void term_handler();
 int term();
 void main_daemon();
 int init_daemon();

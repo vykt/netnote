@@ -8,11 +8,13 @@
 #include <errno.h>
 
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/un.h>
 
 #include "request.h"
+#include "net_udp.h"
 #include "vector.h"
 #include "error.h"
 
@@ -132,14 +134,13 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 	int ret;
 	int sock_conn;
 	ssize_t rd_wr;
-	long num_buf;
 	struct ucred cred;
 	addr_ping_info_t * pi;
 	socklen_t len = sizeof(cred);
 
 	char request[PATH_MAX+4] = {};
 	char reply[PATH_MAX+4] = {};
-	char addr_buf[64] = {};
+	char * addr_buf;
 	char num_buf[16] = {};
 	char * request_id;
 	char * request_path;
@@ -181,12 +182,13 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 		//For every ping, build line of response message
 		for (int i = 0; i < pings->length; i++) {
 
-			ret = vector_get_ref(pings, i, pi);
+			ret = vector_get_ref(pings, i, (char **) &pi);
 			if (ret != SUCCESS) { close(sock_conn); return ret; }
 
 			sprintf(num_buf, "%d : ", i);
 			strcat(num_buf, reply);
-			addr_buf = inet_ntop(AF_INET6, pi->addr, addr_buf, strlen(addr_buf));
+			addr_buf = inet_ntop(AF_INET6, (void *restrict) &pi->addr, 
+											addr_buf, strlen(addr_buf));
 			if (addr_buf == NULL) { close(sock_conn); return REQUEST_GENERIC_ERR; }
 			strcat(addr_buf, reply);
 			strcat("\n", reply);
