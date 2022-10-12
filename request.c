@@ -174,9 +174,10 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 
 	//Process request
 	request_id = strtok(request, "\\");
+	request_path = strtok(NULL, "\\");
 
 	//If asking for list
-	ret = strcmp(request_id, "list");	
+	ret = strcmp(request_path, "LIST");	
 	if (!ret) {
 
 		//For every ping, build line of response message
@@ -202,10 +203,9 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 		close(sock_conn);
 		return SUCCESS;
 	}
-
-	//if asking for send
-	request_path = strtok(NULL, "\\");
 	
+	//If asking for send
+
 	//Test permissions
 	ret = req_authorise(request_path, rc);
 	

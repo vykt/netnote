@@ -1,8 +1,0 @@
-1) Create client
-2) Write main function, take command line opts
-
-
-FUTURE:
-
-Make error logging better, current logs are very vague.
-

@@ -84,7 +84,7 @@ int conn_send(conn_info_t * ci) {
 
 int conn_recv(conn_info_t * ci) {
 
-	int ret;
+	//int ret;
 	ssize_t rd_wr;
 	char recv_buf[DF_LEN] = {};
 

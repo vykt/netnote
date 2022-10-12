@@ -98,7 +98,7 @@ void main_daemon() {
 	addr_ping_info_t pi;
 	addr_ping_info_t * ppi = &pi;
 	struct sockaddr_in6 send_addr;
-	struct sockaddr_in6 recv_addr;
+	//struct sockaddr_in6 recv_addr;
 	vector_t pings;
 	vector_t conns;
 
@@ -107,7 +107,7 @@ void main_daemon() {
 	unsigned short poll_fds_count = 0;
 
 	//Config data
-	char * config_path = "opts.conf"; //TODO change to /etc/scarlet.conf
+	char * config_path = "/home/vykt/programming/scarlet/opts.conf"; //TODO change to /etc/scarlet.conf
 	char * options_arr;
 
 	//Request data

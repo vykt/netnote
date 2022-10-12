@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <getopt.h>
+#include <limits.h>
 
 #include <linux/limits.h>
 
@@ -21,6 +22,7 @@ int main(int argc, char ** argv) {
 	int opt_index;
 	int peer_id = 0;
 	char file[PATH_MAX] = {};
+	char resolved_path[PATH_MAX] = {};
 	uid_t check_root;
 	FILE * check_pid;
 	req_info_t ri;
@@ -51,7 +53,6 @@ int main(int argc, char ** argv) {
 					return FAIL;
 				}
 				main_daemon();
-				break;
 
 			//Send option
 			case 's':
@@ -60,7 +61,7 @@ int main(int argc, char ** argv) {
 					printf("Use: scarlet -s <filename> <peer id>\n");
 					return FAIL;
 				}
-				strcpy(file, argv[optind-1]);	
+				realpath(argv[optind-1], file);
 				if (argv[optind] == NULL) {
 					printf("Use: scarlet -s <filename> <peer id>\n");
 					return FAIL;
@@ -79,15 +80,28 @@ int main(int argc, char ** argv) {
 					return FAIL;
 				}
 
-				//TODO send request
-				break;
+				return SUCCESS;
 
 			//List function
 			case 'l':
-				
-				break;
+				strcpy(file, "LIST");
+				peer_id = atoi("0");
+
+				ret = init_req(&ri, peer_id, file);
+				if (ret != SUCCESS) {
+					printf("An error occured. Check error log for details.\n");
+					return FAIL;
+				}
+
+				ret = req_send(&ri);
+				if (ret != SUCCESS) {
+					printf("An error occured. Check error log for details.\n");
+					return FAIL;
+				}
+
+				return SUCCESS;
 		}
 	}
 
-	return SUCCESS;
+	return FAIL;
 }
