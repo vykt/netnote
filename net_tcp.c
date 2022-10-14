@@ -58,7 +58,7 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 
 	//Send filename
 	strcpy(filename_buf, file);
-	strcat(filename_buf, "/");
+	//strcat(filename_buf, "/");
 	filename_len = strlen(filename_buf);
 	while (1) {
 		rd_wr = send(ci.sock, filename_buf+rd_wr_total,

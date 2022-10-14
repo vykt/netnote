@@ -103,25 +103,27 @@ int req_send(req_info_t * ri) {
 	sprintf(itoa_buf, "%d", ri->target_host_id + 1);
 
 	//Build request
-	if(itoa_buf == 0) {
-		strcat(request, "list");
-	} else {
-		strcat(request, itoa_buf);
-		strcat(request, "\\");
-		strcat(request, ri->file);
-	}
+	strcat(request, itoa_buf);
+	strcat(request, "\\");
+	strcat(request, ri->file);
 
 	//Connect
 	ret = connect(ri->sock, (struct sockaddr *) &addr, sizeof(addr));
 	if (ret == -1) { close(ri->sock); return SOCK_CONNECT_ERR; }
 
+	printf("Connected!\n");
+
 	//Write to socket
 	rd_wr = send(ri->sock, request, strlen(request), 0);
 	if (rd_wr == -1) { close(ri->sock); return SOCK_SEND_ERR; }
 
+	printf("Sent!\n");
+
 	//Receive response
 	rd_wr = recv(ri->sock, ri->reply, REQ_REPLY_SIZE, 0);
 	if (rd_wr <= 0) { close(ri->sock); return SOCK_RECV_ERR; }
+
+	printf("%s", ri->reply);
 
 	close(ri->sock);
 	return SUCCESS;
@@ -140,7 +142,7 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 
 	char request[PATH_MAX+4] = {};
 	char reply[PATH_MAX+4] = {};
-	char * addr_buf;
+	char addr_buf[ADDR_BUF_SIZE] = {};
 	char num_buf[16] = {};
 	char * request_id;
 	char * request_path;
@@ -188,12 +190,9 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 
 			sprintf(num_buf, "%d : ", i);
 			strcat(num_buf, reply);
-			addr_buf = inet_ntop(AF_INET6, (void *restrict) &pi->addr, 
-											addr_buf, strlen(addr_buf));
-			if (addr_buf == NULL) { close(sock_conn); return REQUEST_GENERIC_ERR; }
-			strcat(addr_buf, reply);
-			strcat("\n", reply);
-
+			inet_ntop(AF_INET6, (void *restrict) &pi->addr, addr_buf, ADDR_BUF_SIZE);
+			strcat(reply, addr_buf);
+			strcat(reply, "\n");
 		}
 		
 		//Send reply to caller
@@ -201,7 +200,7 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 		if (rd_wr == -1) { close(sock_conn); return SOCK_SEND_ERR; }
 
 		close(sock_conn);
-		return SUCCESS;
+		return REQUEST_LIST;
 	}
 	
 	//If asking for send

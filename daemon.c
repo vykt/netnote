@@ -150,7 +150,9 @@ void main_daemon() {
 	poll_fds[TCP_LISTENER].fd = cli.sock;
 	poll_fds[UDP_LISTENER].events = POLLIN;
 	poll_fds[TCP_LISTENER].events = POLLIN;
-	poll_fds_count += 2;
+	poll_fds[REQ_LISTENER].fd = rli.sock;
+	poll_fds[REQ_LISTENER].events = POLLIN;
+	poll_fds_count += 3;
 
 	/*
 	 *
@@ -165,10 +167,9 @@ void main_daemon() {
 		if (ret == -1) log_err(CRIT_ERR_LOG, NULL, NULL);
 
 		if (poll_fds[UDP_LISTENER].revents & POLLIN) {
-			
 			ret = recv_ping(&pings, &ri);
 			if (ret != SUCCESS && ret != FAIL) log_err(UDP_ERR_LOG, NULL, NULL);
-
+			printf("Received ping!\n");
 		}
 
 		//Connection listener
@@ -242,8 +243,10 @@ void main_daemon() {
 		//Request listener
 		if (poll_fds[REQ_LISTENER].revents & POLLIN) {
 			ret = req_receive(&rli, &rc, &pings);
-			if (ret != SUCCESS && ret != FAIL) log_err(UNIX_ERR_LOG, NULL, NULL);
-			
+			if (ret != SUCCESS && ret != FAIL && ret != REQUEST_LIST) {
+				log_err(UNIX_ERR_LOG, NULL, NULL);
+			}
+
 			//If request was unsuccessful / unauthorised
 			if (ret == FAIL) {
 				sprintf(err_buf, "%d", rli.target_host_id);
@@ -262,7 +265,7 @@ void main_daemon() {
 					log_err(TCP_ERR_LOG, err_buf, NULL);
 				}
 			//If request function encountered an error
-			} else {
+			} else if (ret != REQUEST_LIST) {
 				log_err(CRIT_ERR_LOG, NULL, NULL);
 
 			} //End request
@@ -276,6 +279,7 @@ void main_daemon() {
 		if (si.last_ping + PING_INTERVAL < time(NULL)) {
 			ret = send_ping(&si, MSG_PING);
 			if (ret != SUCCESS) log_err(UDP_ERR_LOG, NULL, NULL);
+			printf("Sent ping!\n");
 		}
 	}
 

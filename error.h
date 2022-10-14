@@ -43,28 +43,29 @@
 #define REQUEST_PERM_ERR 25
 #define REQUEST_FILE_EXIST_ERR 26
 #define REQUEST_GENERIC_ERR 27
+#define REQUEST_LIST 28
 
 //config.h
-#define CONF_ADDR_ERR 28
-#define CONF_READ_ERR 29
-#define CONF_FORMAT_ERR 30
-#define CONF_INCOMPLETE_ERR 31
+#define CONF_ADDR_ERR 29
+#define CONF_READ_ERR 30
+#define CONF_FORMAT_ERR 31
+#define CONF_INCOMPLETE_ERR 32
 
 //daemon.h, request.h
-#define DAEMON_FORK_ERR 32
-#define DAEMON_HANDLER_ERR 33
-#define DAEMON_UN_SOCK_ERR 34
-#define DAEMON_PID_WRITE_ERR 35
-#define DAEMON_POLL_RMV_ERR 36
-#define DAEMON_CLEANUP_ERR 37
+#define DAEMON_FORK_ERR 33
+#define DAEMON_HANDLER_ERR 34
+#define DAEMON_UN_SOCK_ERR 35
+#define DAEMON_PID_WRITE_ERR 36
+#define DAEMON_POLL_RMV_ERR 37
+#define DAEMON_CLEANUP_ERR 38
 
 //log.h
-#define LOG_PATH_ERR 38
-#define LOG_ERR_ERR 39
-#define LOG_ACT_ERR 40
+#define LOG_PATH_ERR 39
+#define LOG_ERR_ERR 40
+#define LOG_ACT_ERR 41
 
 //critical errors
-#define CRITICAL_ERR 41
+#define CRITICAL_ERR 42
 
 
 //EXITS

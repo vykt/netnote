@@ -16,6 +16,7 @@
 
 #define REQ_BACKLOG 2
 #define REQ_REPLY_SIZE 4096
+#define ADDR_BUF_SIZE 32
 
 typedef struct req_cred req_cred_t;
 typedef struct req_listener_info req_listener_info_t;

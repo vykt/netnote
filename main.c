@@ -67,6 +67,10 @@ int main(int argc, char ** argv) {
 					return FAIL;
 				}
 				peer_id = atoi(argv[optind]);
+				if (peer_id < 0) {
+					printf("Use: scalet -s <filename> <peer id>\n");
+					return FAIL;
+				}
 
 				ret = init_req(&ri, peer_id, file);
 				if (ret != SUCCESS) {
@@ -85,7 +89,7 @@ int main(int argc, char ** argv) {
 			//List function
 			case 'l':
 				strcpy(file, "LIST");
-				peer_id = atoi("0");
+				peer_id = atoi("-1");
 
 				ret = init_req(&ri, peer_id, file);
 				if (ret != SUCCESS) {

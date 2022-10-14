@@ -8,7 +8,7 @@
 #include "vector.h"
 
 
-#define PING_TIMEOUT 30 //seconds
+#define PING_TIMEOUT 3600 //seconds //TODO make 30 seconds
 #define PING_INTERVAL 8 //seconds
 #define MSG_SIZE 32
 #define MSG_PING 0
@@ -24,9 +24,7 @@ struct addr_ping_info {
 
 	struct sockaddr_in6 addr;
 	time_t last_ping;
-
 };
-
 
 struct send_ping_info {
 
@@ -39,7 +37,7 @@ struct recv_ping_info {
 
 	int sock;
 	struct sockaddr_in6 addr;
-
+	struct sockaddr_in6 addr_ignore;
 };
 
 
