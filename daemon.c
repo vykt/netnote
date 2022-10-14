@@ -89,7 +89,6 @@ void main_daemon() {
 	send_ping_info_t si;
 	recv_ping_info_t ri;
 	conn_listener_info_t cli;
-	conn_info_t * ci;
 	conn_info_t * vci;
 	addr_ping_info_t pi;
 	addr_ping_info_t * ppi = &pi;
@@ -177,13 +176,11 @@ void main_daemon() {
 			ret = conn_listener(&conns, cli, (options_arr+(DL_PATH*PATH_MAX)));
 			if (ret != SUCCESS) log_err(TCP_ERR_LOG, "<connecting>", NULL);
 
-			ret = vector_add(&conns, 0, NULL, VECTOR_APPEND_TRUE);
-			if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
+			//ret = vector_add(&conns, 0, NULL, VECTOR_APPEND_TRUE);
+			//if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
 
 			ret = vector_get_ref(&conns, conns.length-1, (char **) &vci);
 			if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
-
-			vci->sock = ci->sock;
 
 			poll_fds[poll_fds_count].fd = vci->sock;
 			poll_fds[poll_fds_count].events = POLLIN;
@@ -280,6 +277,7 @@ void main_daemon() {
 			ret = send_ping(&si, MSG_PING);
 			if (ret != SUCCESS) log_err(UDP_ERR_LOG, NULL, NULL);
 			log_act(SEND_ACT, 0, "Sending ping, test log!\n");
+			printf("Ping sent!\n"); //TODO remove
 		}
 	}
 
