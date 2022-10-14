@@ -74,6 +74,7 @@ int config_read(char * conf_path, char * options_arr) {
 					fclose(fd);
 					return ret;
 				}
+				break;
 			}
 		}
 	}
@@ -82,7 +83,7 @@ int config_read(char * conf_path, char * options_arr) {
 	for (int i = 0; i < CONF_OPTION_NUM; i++) {
 		
 		//Theoretically (lol), if option has not been read
-		if (*(options_arr+(i * (PATH_MAX + CONF_OPTION_SIZE))) == 0) {
+		if (*(options_arr+(i * PATH_MAX)) == 0) {
 			free(conf_line);
 			fclose(fd);
 			return CONF_INCOMPLETE_ERR;

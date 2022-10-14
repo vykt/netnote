@@ -101,7 +101,7 @@ int log_act(int act_id, char * id, char * file) {
 
 	char log_time_buf[32] = {};
 	char log_msg_buf[LOG_LINE_SIZE] = {};
-	char log_buf[LOG_LINE_SIZE] = "[LOG] [";
+	char log_buf[LOG_LINE_SIZE] = "[ACT] [";
 
 	char * log_dir_path = "/var/log/scarlet";
 	char * log_path = "/var/log/scarlet/scarlet.log";

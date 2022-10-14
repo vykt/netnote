@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <string.h>
+#include <time.h>
 #include <errno.h>
 
 #include <sys/types.h>
@@ -33,24 +34,19 @@ int terminate = 0;
 //Respond to SIGTERM
 void term_handler(int signum) {
 
-	int ret;
-
-	//Remove pid file
-	ret = remove("/var/run/scarlet.pid");
-	if (ret == -1) exit(EXIT_ERR);
-
-	//Remove sock
-	ret = remove("/var/run/scarlet/sock");
-	if (ret == -1) exit(EXIT_ERR);
+	terminate = 1;
 
 	exit(EXIT_SIGTERM_NORMAL);
 }
 
 
 //Called on unexpected exit to attempt some cleanup.
-int term() {
+int term(send_ping_info_t * si) {
 
 	int ret;
+
+	//Send terminate signal
+	ret = send_ping(si, MSG_EXIT);
 
 	//Remove pid file
 	ret = remove("/var/run/scarlet.pid");
@@ -97,8 +93,6 @@ void main_daemon() {
 	conn_info_t * vci;
 	addr_ping_info_t pi;
 	addr_ping_info_t * ppi = &pi;
-	struct sockaddr_in6 send_addr;
-	//struct sockaddr_in6 recv_addr;
 	vector_t pings;
 	vector_t conns;
 
@@ -127,9 +121,6 @@ void main_daemon() {
 	options_arr = malloc((PATH_MAX + CONF_OPTION_SIZE) * CONF_OPTION_NUM);
 	ret = config_read(config_path, options_arr); //Access: options_arr+(n * PATH_MAX)
 	if (ret != SUCCESS) log_err(CONF_ERR_LOG, NULL, NULL);
-	
-	send_addr.sin6_family = AF_INET6;
-	send_addr.sin6_port = htons(*(options_arr+(2 * PATH_MAX)));
 
 	//Request initialiser
 	ret = init_req_listener(&rli);
@@ -143,13 +134,13 @@ void main_daemon() {
 
 	//Network initialiser
 	ret = init_send_ping_info(&si, (options_arr+(M_ADDR*PATH_MAX)), 
-							  *(options_arr+(UDP_PORT*PATH_MAX)));
+							  atoi((options_arr+(UDP_PORT*PATH_MAX))));
 	if (ret != SUCCESS) log_err(CRIT_ERR_LOG, NULL, NULL);
 	ret = init_recv_ping_info(&ri, (options_arr+(0*PATH_MAX)), 
-							  *(options_arr+(UDP_PORT*PATH_MAX)));
+							  atoi((options_arr+(UDP_PORT*PATH_MAX))));
 	if (ret != SUCCESS) log_err(CRIT_ERR_LOG, NULL, NULL);
 
-	ret = init_conn_listener_info(&cli, *(options_arr+(TCP_PORT*PATH_MAX)));
+	ret = init_conn_listener_info(&cli, atoi((options_arr+(TCP_PORT*PATH_MAX))));
 	if (ret != SUCCESS) log_err(CRIT_ERR_LOG, NULL, NULL);
 
 	//Polling initialiser
@@ -209,7 +200,7 @@ void main_daemon() {
 				ret = vector_get_ref(&conns, i-3, (char **) &vci);
 				if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
 
-				ret = conn_recv(vci); //TODO convert i to char *
+				ret = conn_recv(vci);
 				if (ret != SUCCESS) {
 					sprintf(err_buf, "%d", i);
 					log_err(TCP_ERR_LOG, err_buf, NULL);
@@ -284,6 +275,12 @@ void main_daemon() {
 		ret = check_ping_times(&pings);
 		if (ret != SUCCESS) log_err(CRIT_ERR_LOG, NULL, NULL);
 
+		//Check for need to send out ping
+		if (si.last_ping + PING_INTERVAL < time(NULL)) {
+			ret = send_ping(&si, MSG_PING);
+			if (ret != SUCCESS) log_err(UDP_ERR_LOG, NULL, NULL);
+			log_act(SEND_ACT, 0, "Sending ping, test log!\n");
+		}
 	}
 
 	/*
@@ -294,7 +291,7 @@ void main_daemon() {
 	
 	//Request cleanup
 	close(rli.sock);
-	ret = term();
+	ret = term(&si);
 	if (ret != SUCCESS) { free(options_arr); exit(DAEMON_CLEANUP_ERR); }
 
 	//Config cleanup

@@ -40,14 +40,16 @@ int check_ping_times(vector_t * pings) {
 }
 
 
-int send_ping(send_ping_info_t si, int msg) {
+int send_ping(send_ping_info_t * si, int msg) {
 
 	ssize_t ret;
 	char body[2][MSG_SIZE] = {"scarlet-ping", "scarlet-exit"};
 	
-	ret = sendto(si.sock, body[msg], strlen(body[msg]), 0,
-			     (struct sockaddr *) &si.addr, sizeof(si.addr));
-	if (ret == -1) { close(si.sock); return SOCK_SEND_ERR; }
+	ret = sendto(si->sock, body[msg], strlen(body[msg]), 0,
+			     (struct sockaddr *) &si->addr, sizeof(si->addr));
+	if (ret == -1) { close(si->sock); return SOCK_SEND_ERR; }
+	si->last_ping = time(NULL);
+
 	return SUCCESS;
 }
 
@@ -125,6 +127,8 @@ int init_send_ping_info(send_ping_info_t * si, char * group_addr_str,
 	si->addr = addr;
 	ret = inet_pton(AF_INET6, group_addr_str, &si->addr.sin6_addr);
 	if (ret == -1) { close(si->sock); return CONF_ADDR_ERR; }
+	si->last_ping = 0;
+
 	return SUCCESS;
 }
 
