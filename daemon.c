@@ -276,8 +276,6 @@ void main_daemon() {
 		if (si.last_ping + PING_INTERVAL < time(NULL)) {
 			ret = send_ping(&si, MSG_PING);
 			if (ret != SUCCESS) log_err(UDP_ERR_LOG, NULL, NULL);
-			log_act(SEND_ACT, 0, "Sending ping, test log!\n");
-			printf("Ping sent!\n"); //TODO remove
 		}
 	}
 
