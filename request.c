@@ -123,7 +123,7 @@ int req_send(req_info_t * ri) {
 	rd_wr = recv(ri->sock, ri->reply, REQ_REPLY_SIZE, 0);
 	if (rd_wr <= 0) { close(ri->sock); return SOCK_RECV_ERR; }
 
-	printf("%s", ri->reply);
+	printf("%s\n", ri->reply);
 
 	close(ri->sock);
 	return SUCCESS;
