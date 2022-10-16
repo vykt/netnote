@@ -176,7 +176,8 @@ int vector_get_pos_by_dat(vector_t * v, char * data, unsigned long * pos) {
 		ret = vector_get_ref(v, i, &data_cmp);
 		if (ret != SUCCESS) return ret;
 
-		ret = memcmp(data, data_cmp, v->data_size);
+		//Here, compare only the sockaddr_in6 part, not the last_ping
+		ret = memcmp(data, data_cmp, sizeof((struct sockaddr_in6 *) data));
 		if (ret) continue;
 		*pos = i;
 		return SUCCESS;

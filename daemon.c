@@ -148,9 +148,9 @@ void main_daemon() {
 	 */
 	poll_fds[UDP_LISTENER].fd = ri.sock;
 	poll_fds[TCP_LISTENER].fd = cli.sock;
+	poll_fds[REQ_LISTENER].fd = rli.sock;
 	poll_fds[UDP_LISTENER].events = POLLIN;
 	poll_fds[TCP_LISTENER].events = POLLIN;
-	poll_fds[REQ_LISTENER].fd = rli.sock;
 	poll_fds[REQ_LISTENER].events = POLLIN;
 	poll_fds_count += 3;
 
@@ -166,6 +166,7 @@ void main_daemon() {
 		ret = poll(poll_fds, poll_fds_count, POLL_TIMEOUT * 100);
 		if (ret == -1) log_err(CRIT_ERR_LOG, NULL, NULL);
 
+		//Ping listener
 		if (poll_fds[UDP_LISTENER].revents & POLLIN) {
 			ret = recv_ping(&pings, &ri);
 			if (ret != SUCCESS && ret != FAIL) log_err(UDP_ERR_LOG, NULL, NULL);

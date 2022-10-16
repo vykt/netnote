@@ -142,8 +142,8 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 
 	char request[PATH_MAX+4] = {};
 	char reply[PATH_MAX+4] = {};
-	char addr_buf[ADDR_BUF_SIZE] = {};
 	char num_buf[16] = {};
+	char addr_buf[ADDR_BUF_SIZE] = {};
 	char * request_id;
 	char * request_path;
 
@@ -188,13 +188,15 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 			ret = vector_get_ref(pings, i, (char **) &pi);
 			if (ret != SUCCESS) { close(sock_conn); return ret; }
 
-			sprintf(num_buf, "%d : ", i);
-			strcat(num_buf, reply);
-			inet_ntop(AF_INET6, (void *restrict) &pi->addr, addr_buf, ADDR_BUF_SIZE);
+			sprintf(num_buf, "%d - ", i);
+			strcat(reply, num_buf);
+			inet_ntop(AF_INET6, (void *restrict) &pi->addr.sin6_addr, addr_buf, ADDR_BUF_SIZE);
 			strcat(reply, addr_buf);
 			strcat(reply, "\n");
 		}
-		
+	
+		printf("PINGS LENGTH: %lu\n", pings->length);
+
 		//Send reply to caller
 		rd_wr = send(sock_conn, reply, strlen(reply), 0);
 		if (rd_wr == -1) { close(sock_conn); return SOCK_SEND_ERR; }
