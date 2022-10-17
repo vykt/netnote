@@ -84,6 +84,7 @@ void main_daemon() {
 
 	int ret;
 	char err_buf[16] = {0};
+	int port_buf;
 	
 	//Networking data
 	send_ping_info_t si;
@@ -262,7 +263,8 @@ void main_daemon() {
 				if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
 				//TODO change port to TCP_PORT
 				//Access: options_arr+(n * PATH_MAX)
-				ppi->addr.sin6_port = htons(*(options_arr+(TCP_PORT * PATH_MAX)));
+				port_buf = strtol(options_arr+(TCP_PORT * PATH_MAX), NULL, 10);
+				ppi->addr.sin6_port = htons(port_buf);
 				ret = conn_initiate(&conns, ppi->addr, rli.file);
 				if (ret != SUCCESS) {
 					sprintf(err_buf, "%d", rli.target_host_id);
