@@ -61,7 +61,7 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 	//Send filename
 	filename = strrchr(file, '/') + 1;
 	//strcpy(filename_buf, file);
-	//strcat(filename_buf, "/");
+	//strcat(filename, "/");
 	while (1) {
 		rd_wr = send(ci.sock, filename+rd_wr_total,
 				     strlen(filename)-rd_wr_total, 0);
@@ -128,6 +128,8 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 			//If filename end found
 			if (recv_buf[i] == '/') {
 
+				recv_buf[i] = '\0';
+
 				//if name length exceeds NAME_MAX
 				if ((strlen(recv_buf_total) + i) > NAME_MAX) {
 					close(ci->sock);
@@ -146,7 +148,7 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 		} //End for every received character
 
 		rd_wr_total = rd_wr_total + rd_wr;
-		if (rd_wr_total <= 4096) {
+		if (rd_wr_total <= NAME_MAX) {
 			strcat(recv_buf_total, recv_buf);
 		} else {
 			close(ci->sock);
