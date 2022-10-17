@@ -260,7 +260,10 @@ void main_daemon() {
 				ret = vector_get_ref(&pings, (unsigned long) rli.target_host_id, 
 									 (char **) &ppi);
 				if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
-				ret = conn_initiate(&conns, pi.addr, rli.file);
+				//TODO change port to TCP_PORT
+				//Access: options_arr+(n * PATH_MAX)
+				ppi->addr.sin6_port = htons(*(options_arr+(TCP_PORT * PATH_MAX)));
+				ret = conn_initiate(&conns, ppi->addr, rli.file);
 				if (ret != SUCCESS) {
 					sprintf(err_buf, "%d", rli.target_host_id);
 					log_err(TCP_ERR_LOG, err_buf, NULL);

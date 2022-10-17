@@ -13,6 +13,8 @@
 #include "vector.h"
 #include "error.h"
 
+//debug
+#include <stdio.h>
 
 /*
  *  conn_initiate() - Called when sending file to specified address.
