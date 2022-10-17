@@ -29,8 +29,8 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 	int sock_conn;
 	ssize_t rd_wr;
 	ssize_t rd_wr_total = 0;
-	char filename_buf[NAME_MAX+1] = {};
-	size_t filename_len;
+	char * filename;
+	//char filename_buf[NAME_MAX+1] = {};
 	conn_info_t ci;
 
 	//Create socket
@@ -59,12 +59,14 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 	if (ret == -1) { close(ci.sock); return FILE_STAT_ERR; }
 
 	//Send filename
-	strcpy(filename_buf, file);
+	filename = strrchr(file, '/') + 1;
+	//strcpy(filename_buf, file);
 	//strcat(filename_buf, "/");
-	filename_len = strlen(filename_buf);
 	while (1) {
-		rd_wr = send(ci.sock, filename_buf+rd_wr_total,
-				     strlen(filename_buf)-rd_wr_total, 0);
+		rd_wr = send(ci.sock, filename+rd_wr_total,
+				     strlen(filename)-rd_wr_total, 0);
+		//rd_wr = send(ci.sock, filename_buf+rd_wr_total,
+		//		     strlen(filename_buf)-rd_wr_total, 0);
 
 		if (rd_wr == -1 && errno == EAGAIN ) { continue; }
 		if (rd_wr == -1 ) { close(ci.sock); return SOCK_SEND_NAME_ERR; }
