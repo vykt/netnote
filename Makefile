@@ -17,17 +17,17 @@ config.o: config.c config.h error.h
 daemon.o: daemon.c log.h config.h daemon.h request.h net_transfer.h net_tcp.h net_udp.h vector.h error.h
 	${CC} ${CFLAGS} -c log.h config.h daemon.c daemon.h request.h net_transfer.h net_tcp.h net_udp.h vector.h error.h
 
-request.o: request.c request.h vector.h error.h
-	${CC} ${CFLAGS} -c request.c request.h vector.h error.h
+request.o: request.c log.h request.h vector.h error.h
+	${CC} ${CFLAGS} -c request.c log.h request.h vector.h error.h
 
-net_transfer.o: net_transfer.c net_transfer.h net_tcp.h error.h
-	${CC} ${CFLAGS} -c net_transfer.c net_transfer.h net_tcp.h error.h
+net_transfer.o: net_transfer.c log.h net_transfer.h net_tcp.h error.h
+	${CC} ${CFLAGS} -c net_transfer.c log.h net_transfer.h net_tcp.h error.h
 
-net_tcp.o: net_tcp.c net_tcp.h vector.h error.h
-	${CC} ${CFLAGS} -c net_tcp.c net_tcp.h vector.h error.h
+net_tcp.o: net_tcp.c log.h net_tcp.h vector.h error.h
+	${CC} ${CFLAGS} -c net_tcp.c log.h net_tcp.h vector.h error.h
 
-net_udp.o: net_udp.c net_udp.h vector.h error.h
-	${CC} ${CFLAGS} -c net_udp.c net_udp.h vector.h error.h
+net_udp.o: net_udp.c log.h net_udp.h vector.h error.h
+	${CC} ${CFLAGS} -c net_udp.c log.h net_udp.h vector.h error.h
 
 vector.o: vector.c vector.h error.h
 	${CC} ${CFLAGS} -c vector.c vector.h error.h

@@ -4,6 +4,7 @@
 
 #include <sys/mman.h>
 
+#include "log.h"
 #include "net_transfer.h"
 #include "net_tcp.h"
 #include "error.h"

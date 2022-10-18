@@ -109,11 +109,12 @@ int log_act(int act_id, char * id, char * file) {
 	char log_messages[LOG_ACT_NUM][LOG_LINE_SIZE] = {
 		"Daemon started.\n",
 		"Daemon stopped.\n",
-		"Daemon stopped due to an error. See error log for details.\n",
 		"New connection established with host at %s.\n",
 		"Connection lost with host at %s.\n",
-		"File '%s' sent to host at %s.\n",
-		"File '%s' received from host at %s.\n"
+		"Finished sending file to host at %s.\n",
+		"Finished receiving file from host at %s.\n",
+		"Started sending file '%s' to host at %s.\n",
+		"Started receiving file '%s' from host at %s.\n"
 	};
 
 	//Create directory and file, if not present
@@ -142,12 +143,12 @@ int log_act(int act_id, char * id, char * file) {
 	strcat(log_buf, log_time_buf);
 	strcat(log_buf, "] ");
 
-	if (act_id <= 2) {
+	if (act_id <= 1) {
 		sprintf(log_msg_buf, log_messages[act_id]);
-	} else if (act_id <= 4) {
+	} else if (act_id <= 5) {
 		sprintf(log_msg_buf, log_messages[act_id], id);
 	} else {
-		sprintf(log_msg_buf, log_messages[act_id], id, file);
+		sprintf(log_msg_buf, log_messages[act_id], file, id);
 	}
 
 	strcat(log_buf, log_msg_buf);

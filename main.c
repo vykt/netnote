@@ -22,7 +22,6 @@ int main(int argc, char ** argv) {
 	int opt_index;
 	int peer_id = 0;
 	char file[PATH_MAX] = {};
-	char resolved_path[PATH_MAX] = {};
 	uid_t check_root;
 	FILE * check_pid;
 	req_info_t ri;

@@ -31,12 +31,20 @@
 int terminate = 0;
 
 
+//Cleanup files if error encountered before entering main loop
+void early_term() {
+	
+	remove("/var/run/scarlet.pid");
+	remove("/var/run/scarlet/sock");
+	log_act(STOP_ACT, NULL, NULL);
+	exit(EXIT_ERR);
+}
+
+
 //Respond to SIGTERM
 void term_handler(int signum) {
 
 	terminate = 1;
-
-	exit(EXIT_SIGTERM_NORMAL);
 }
 
 
@@ -113,36 +121,56 @@ void main_daemon() {
 	ret = init_daemon();
 	if (ret != SUCCESS) {
 		log_err(CRIT_ERR_LOG, NULL, NULL);
-		exit(EXIT_ERR);
+		early_term();
 	}
 	ret = log_act(0, NULL, NULL);
 
 	//Config initialiser
 	options_arr = malloc((PATH_MAX + CONF_OPTION_SIZE) * CONF_OPTION_NUM);
 	ret = config_read(config_path, options_arr); //Access: options_arr+(n * PATH_MAX)
-	if (ret != SUCCESS) log_err(CONF_ERR_LOG, NULL, NULL);
+	if (ret != SUCCESS) {
+		log_err(CONF_ERR_LOG, NULL, NULL);
+		early_term();
+	}
 
 	//Request initialiser
 	ret = init_req_listener(&rli);
-	if (ret != SUCCESS) log_err(UNIX_ERR_LOG, NULL, NULL);
+	if (ret != SUCCESS) {
+		log_err(UNIX_ERR_LOG, NULL, NULL);
+		early_term();
+	}
 
 	//Vector initialiser
 	ret = vector_ini(&pings, sizeof(addr_ping_info_t));
-	if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
+	if (ret != SUCCESS) {
+		log_err(VECTOR_ERR_LOG, NULL, NULL);
+		early_term();
+	}
 	ret = vector_ini(&conns, sizeof(conn_info_t));
-	if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
+	if (ret != SUCCESS) {
+		log_err(VECTOR_ERR_LOG, NULL, NULL);
+		early_term();
+	}
 
 	//Network initialiser
 	ret = init_send_ping_info(&si, (options_arr+(M_ADDR*PATH_MAX)), 
 							  atoi((options_arr+(UDP_PORT*PATH_MAX))));
-	if (ret != SUCCESS) log_err(CRIT_ERR_LOG, NULL, NULL);
+	if (ret != SUCCESS) {
+		log_err(CRIT_ERR_LOG, NULL, NULL);
+		early_term();
+	}
 	ret = init_recv_ping_info(&ri, (options_arr+(0*PATH_MAX)), 
 							  atoi((options_arr+(UDP_PORT*PATH_MAX))));
-	if (ret != SUCCESS) log_err(CRIT_ERR_LOG, NULL, NULL);
-
+	if (ret != SUCCESS) {
+		log_err(CRIT_ERR_LOG, NULL, NULL);
+		early_term();
+	}
 	ret = init_conn_listener_info(&cli, atoi((options_arr+(TCP_PORT*PATH_MAX))));
-	if (ret != SUCCESS) log_err(CRIT_ERR_LOG, NULL, NULL);
-
+	if (ret != SUCCESS) {
+		log_err(CRIT_ERR_LOG, NULL, NULL);
+		early_term();
+	}
+	
 	//Polling initialiser
 	/*	poll_fds[UDP_LISTENER] = udp listener, POLLIN, index 0
 	 *	poll_fds[TCP_LISTENER] = tcp listener, POLLIN, index 1
@@ -165,25 +193,36 @@ void main_daemon() {
 
 		//Get sockets awaiting action
 		ret = poll(poll_fds, poll_fds_count, POLL_TIMEOUT * 100);
-		if (ret == -1) log_err(CRIT_ERR_LOG, NULL, NULL);
-
+		if (ret == -1) {
+			log_err(CRIT_ERR_LOG, NULL, NULL);
+			early_term();
+		}
+		
 		//Ping listener
 		if (poll_fds[UDP_LISTENER].revents & POLLIN) {
 			ret = recv_ping(&pings, &ri);
-			if (ret != SUCCESS && ret != FAIL) log_err(UDP_ERR_LOG, NULL, NULL);
-			printf("Received ping!\n");
+			if (ret != SUCCESS && ret != FAIL) {
+				log_err(UDP_ERR_LOG, NULL, NULL);
+				terminate = 1;
+			}
 		}
 
 		//Connection listener
 		if (poll_fds[TCP_LISTENER].revents & POLLIN) {
 			ret = conn_listener(&conns, cli, (options_arr+(DL_PATH*PATH_MAX)));
-			if (ret != SUCCESS) log_err(TCP_ERR_LOG, "<connecting>", NULL);
-
-			//ret = vector_add(&conns, 0, NULL, VECTOR_APPEND_TRUE);
-			//if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
+			if (ret != SUCCESS && ret != CRITICAL_ERR) {
+				log_err(TCP_ERR_LOG, "<connecting>", NULL);
+				terminate = 1;
+			} else if (ret == CRITICAL_ERR) {
+				log_err(CRIT_ERR_LOG, NULL, NULL);
+				terminate = 1;
+			}
 
 			ret = vector_get_ref(&conns, conns.length-1, (char **) &vci);
-			if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
+			if (ret != SUCCESS) {
+				log_err(VECTOR_ERR_LOG, NULL, NULL);
+				terminate = 1;
+			}
 
 			poll_fds[poll_fds_count].fd = vci->sock;
 			poll_fds[poll_fds_count].events = POLLIN;
@@ -198,21 +237,33 @@ void main_daemon() {
 			if (poll_fds[i].revents & POLLIN) {
 
 				ret = vector_get_ref(&conns, i-3, (char **) &vci);
-				if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
+				if (ret != SUCCESS) {
+					log_err(VECTOR_ERR_LOG, NULL, NULL);
+					terminate = 1;
+				}
 
 				ret = conn_recv(vci);
 				if (ret != SUCCESS) {
 					sprintf(err_buf, "%d", i);
 					log_err(TCP_ERR_LOG, err_buf, NULL);
+					terminate = 1;
+					//TODO in future, if fail to receive, handle it gracefully
+					//instead of quitting.
 				}
 
 				if (vci->status == CONN_STAT_RECV_COMPLETE) {
 
 					ret = vector_rmv(&conns, i-3);
-					if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
+					if (ret != SUCCESS) {
+						log_err(VECTOR_ERR_LOG, NULL, NULL);
+						terminate = 1;
+					}
 
 					ret = poll_fds_remove(poll_fds, poll_fds_count, i);
-					if (ret != SUCCESS) log_err(CRIT_ERR_LOG, NULL, NULL);
+					if (ret != SUCCESS) {
+						log_err(CRIT_ERR_LOG, NULL, NULL);
+						terminate = 1;
+					}
 					--poll_fds_count;
 				}
 			}
@@ -221,21 +272,30 @@ void main_daemon() {
 			if (poll_fds[i].revents & POLLOUT) {
 				
 				ret = vector_get_ref(&conns, i-3, (char **) &vci);
-				if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
+				if (ret != SUCCESS) {
+					log_err(VECTOR_ERR_LOG, NULL, NULL);
+					terminate = 1;
+				}
 
 				ret = conn_send(vci);
 				if (ret != SUCCESS) {
 					sprintf(err_buf, "%d", i);
 					log_err(TCP_ERR_LOG, err_buf, NULL);
+					terminate = 1;
 				}
 
 				if (vci->status == CONN_STAT_SEND_COMPLETE) {
 					
 					ret = vector_rmv(&conns, i-3);
-					if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
-
+					if (ret != SUCCESS) {
+						log_err(VECTOR_ERR_LOG, NULL, NULL);
+						terminate = 1;
+					}
 					ret = poll_fds_remove(poll_fds, poll_fds_count, i);
-					if (ret != SUCCESS) log_err(CRIT_ERR_LOG, NULL, NULL);
+					if (ret != SUCCESS) {
+						log_err(CRIT_ERR_LOG, NULL, NULL);
+						terminate = 1;
+					}
 					--poll_fds_count;
 				}
 
@@ -247,6 +307,7 @@ void main_daemon() {
 			ret = req_receive(&rli, &rc, &pings);
 			if (ret != SUCCESS && ret != FAIL && ret != REQUEST_LIST) {
 				log_err(UNIX_ERR_LOG, NULL, NULL);
+				terminate = 1;
 			}
 
 			//If request was unsuccessful / unauthorised
@@ -260,32 +321,51 @@ void main_daemon() {
 			
 				ret = vector_get_ref(&pings, (unsigned long) rli.target_host_id, 
 									 (char **) &ppi);
-				if (ret != SUCCESS) log_err(VECTOR_ERR_LOG, NULL, NULL);
-				//TODO change port to TCP_PORT
-				//Access: options_arr+(n * PATH_MAX)
+				if (ret != SUCCESS) {
+					log_err(VECTOR_ERR_LOG, NULL, NULL);
+					terminate = 1;
+				}
 				port_buf = strtol(options_arr+(TCP_PORT * PATH_MAX), NULL, 10);
 				ppi->addr.sin6_port = htons(port_buf);
 				ret = conn_initiate(&conns, ppi->addr, rli.file);
 				if (ret != SUCCESS) {
 					sprintf(err_buf, "%d", rli.target_host_id);
 					log_err(TCP_ERR_LOG, err_buf, NULL);
+					terminate = 1; //TODO in future, handle gracefully
 				}
+
+				ret = vector_get_ref(&conns, conns.length-1, (char **) &vci);
+				if (ret != SUCCESS) {
+					log_err(VECTOR_ERR_LOG, NULL, NULL);
+					terminate = 1;
+				}
+
+				poll_fds[poll_fds_count].fd = vci->sock;
+				poll_fds[poll_fds_count].events = POLLOUT;
+				++poll_fds_count;
+
 			//If request function encountered an error
 			} else if (ret != REQUEST_LIST) {
 				log_err(CRIT_ERR_LOG, NULL, NULL);
+				terminate = 1;
 
 			} //End request
 		}
 
 		//Check for outdated pings
 		ret = check_ping_times(&pings);
-		if (ret != SUCCESS) log_err(CRIT_ERR_LOG, NULL, NULL);
+		if (ret != SUCCESS) {
+			log_err(CRIT_ERR_LOG, NULL, NULL);
+			terminate = 1;
+		}
 
 		//Check for need to send out ping
 		if (si.last_ping + PING_INTERVAL < time(NULL)) {
 			ret = send_ping(&si, MSG_PING);
-			if (ret != SUCCESS) log_err(UDP_ERR_LOG, NULL, NULL);
-			printf("Sent ping!\n");
+			if (ret != SUCCESS) {
+				log_err(UDP_ERR_LOG, NULL, NULL);
+				terminate = 1;
+			}
 		}
 	}
 
@@ -303,6 +383,7 @@ void main_daemon() {
 	//Config cleanup
 	free(options_arr);
 
+	log_act(STOP_ACT, NULL, NULL);
 	exit(SUCCESS);
 }
 

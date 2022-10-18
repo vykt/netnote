@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "log.h"
 #include "net_udp.h"
 #include "vector.h"
 #include "error.h"
@@ -18,6 +19,7 @@
 int check_ping_times(vector_t * pings) {
 
 	int ret;
+	char id_buf[16] = {};
 	addr_ping_info_t * ping;
 
 	time_t cur_time = time(NULL);
@@ -30,6 +32,9 @@ int check_ping_times(vector_t * pings) {
 
 		//if no ping received for address in PING_TIMEOUT seconds
 		if (cur_time > (ping->last_ping + PING_TIMEOUT)) {
+
+			sprintf(id_buf, "%lu", i);
+			log_act(DROP_CONN_ACT, id_buf, NULL);
 			ret = vector_rmv(pings, i);
 			if (ret != SUCCESS) return ret;
 		}
@@ -60,6 +65,7 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 	int rett;
 	unsigned long pos;
 	struct addr_ping_info * api;
+	char id_buf[16] = {};
 	char body[MSG_SIZE] = {};
 	struct sockaddr_in6 recv_addr;
 	socklen_t recv_addr_len = sizeof(recv_addr);
@@ -97,6 +103,9 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 			rett = vector_get_ref(pings, pings->length - 1, (char **) &api);
 			if (rett != SUCCESS) return rett;
 			api->addr = recv_addr;
+
+			sprintf(id_buf, "%lu", pings->length - 1);
+			log_act(NEW_CONN_ACT, id_buf, NULL);
 
 		//Else if ping from known, tracked host
 		} else if (rett == SUCCESS) {

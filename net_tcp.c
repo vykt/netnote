@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include "log.h"
 #include "net_tcp.h"
 #include "vector.h"
 #include "error.h"
@@ -30,6 +31,7 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 	ssize_t rd_wr;
 	ssize_t rd_wr_total = 0;
 	char * filename;
+	char filename_buf[512] = {};
 	//char filename_buf[NAME_MAX+1] = {};
 	conn_info_t ci;
 
@@ -62,9 +64,11 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 	filename = strrchr(file, '/') + 1;
 	//strcpy(filename_buf, file);
 	//strcat(filename, "/");
+	strcat(filename_buf, filename);
+	strcat(filename_buf, "/");
 	while (1) {
-		rd_wr = send(ci.sock, filename+rd_wr_total,
-				     strlen(filename)-rd_wr_total, 0);
+		rd_wr = send(ci.sock, filename_buf+rd_wr_total,
+				     strlen(filename_buf)-rd_wr_total, 0);
 		//rd_wr = send(ci.sock, filename_buf+rd_wr_total,
 		//		     strlen(filename_buf)-rd_wr_total, 0);
 
@@ -90,6 +94,7 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	ssize_t rd_wr_total = 0;
 	char recv_buf[NAME_MAX+1] = {};
 	char recv_buf_total[4096+NAME_MAX+1] = {};
+	char id_buf[16] = {};
 	char filename[NAME_MAX] = {};
 	int filename_end;
 	conn_info_t * ci;
@@ -159,6 +164,7 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	} //End wait to receive filename
 
 	//Now, create file at /dir/filename
+	strcat(dir, "/");
 	strcat(dir, filename);
 	ci->fd = open(dir, O_WRONLY | O_CREAT, 0644);
 	if (ci->fd == -1) { 
@@ -167,9 +173,16 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 		if (ret != SUCCESS) return CRITICAL_ERR;
 		return FILE_OPEN_ERR;
 	}
+	ret = ftruncate(ci->fd, 0);
+	if (ret == -1) {
+		close(ci->sock);
+		ret = vector_rmv(conns, conns->length - 1);
+		if (ret != SUCCESS) return CRITICAL_ERR;
+		return FILE_OPEN_ERR;
+	}
 
 	//Finally, write the remainder of received buffer into the file if needed.
-	int left_bytes = strlen(recv_buf_total) - filename_end - 1;
+	int left_bytes = strlen(recv_buf_total) - filename_end;
 	if (left_bytes) {
 		rd_wr_total = 0;
 		while(1) {
@@ -185,6 +198,9 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 			if (rd_wr_total >= left_bytes) break;
 		}
 	} //End write remainder of received bytes
+
+	sprintf(id_buf, "%lu", conns->length - 1);
+	log_act(RECV_ACT, id_buf, filename);
 
 	return SUCCESS;
 }

@@ -13,6 +13,7 @@
 #include <sys/param.h>
 #include <sys/un.h>
 
+#include "log.h"
 #include "request.h"
 #include "net_udp.h"
 #include "vector.h"
@@ -111,13 +112,9 @@ int req_send(req_info_t * ri) {
 	ret = connect(ri->sock, (struct sockaddr *) &addr, sizeof(addr));
 	if (ret == -1) { close(ri->sock); return SOCK_CONNECT_ERR; }
 
-	printf("Connected!\n");
-
 	//Write to socket
 	rd_wr = send(ri->sock, request, strlen(request), 0);
 	if (rd_wr == -1) { close(ri->sock); return SOCK_SEND_ERR; }
-
-	printf("Sent!\n");
 
 	//Receive response
 	rd_wr = recv(ri->sock, ri->reply, REQ_REPLY_SIZE, 0);
@@ -144,12 +141,13 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 	char reply[PATH_MAX+4] = {};
 	char num_buf[16] = {};
 	char addr_buf[ADDR_BUF_SIZE] = {};
+	char id_buf[16] = {};
 	char * request_id;
 	char * request_path;
 
-	char * perm_err_response = "perm_err";
-	char * file_exist_err_response = "file_exist_err";
-	char * successful_response = "success";
+	char * perm_err_response = "Permission error.";
+	char * file_exist_err_response = "File exist error.";
+	char * successful_response = "Success.";
 
 	//Try listen
 	sock_conn = accept(rli->sock, NULL, NULL);
@@ -194,8 +192,6 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 			strcat(reply, addr_buf);
 			strcat(reply, "\n");
 		}
-	
-		printf("PINGS LENGTH: %lu\n", pings->length);
 
 		//Send reply to caller
 		rd_wr = send(sock_conn, reply, strlen(reply), 0);
@@ -232,6 +228,8 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 	if (ret == 0) return SOCK_RECV_REQ_ERR;
 	
 	rli->target_host_id = ret - 1;
+	sprintf(id_buf, "%d", rli->target_host_id);
+	log_act(SEND_ACT, id_buf, strrchr(rli->file, '/') + 1);
 
 	//Notify sender request is successful, is being processed
 	rd_wr = send(sock_conn, successful_response, strlen(successful_response), 0);

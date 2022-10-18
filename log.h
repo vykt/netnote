@@ -4,7 +4,7 @@
 
 #define LOG_LINE_SIZE 128
 #define LOG_ERR_NUM 10
-#define LOG_ACT_NUM 7
+#define LOG_ACT_NUM 8
 
 
 #define VECTOR_ERR_LOG 0
@@ -21,11 +21,12 @@
 
 #define START_ACT 0
 #define STOP_ACT 1
-#define ERR_STOP_ACT 2
-#define NEW_CONN_ACT 3		//Need id
-#define DROP_CONN_ACT 4		//Need id
-#define SEND_ACT 5			//Need id, file
-#define RECV_ACT 6			//Need id, file
+#define NEW_CONN_ACT 2		//Need id
+#define DROP_CONN_ACT 3		//Need id
+#define SEND_END_ACT 4		//Need id
+#define RECV_END_ACT 5		//Need id
+#define SEND_ACT 6			//Need id, file
+#define RECV_ACT 7			//Need id, file
 
 
 int log_err(int err_id, char * id, char * file);
