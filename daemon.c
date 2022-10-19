@@ -195,7 +195,8 @@ void main_daemon() {
 		ret = poll(poll_fds, poll_fds_count, POLL_TIMEOUT * 100);
 		if (ret == -1) {
 			log_err(CRIT_ERR_LOG, NULL, NULL);
-			early_term();
+			terminate = 1;
+			printf("Poll exit.\n");
 		}
 		
 		//Ping listener
@@ -204,7 +205,9 @@ void main_daemon() {
 			if (ret != SUCCESS && ret != FAIL) {
 				log_err(UDP_ERR_LOG, NULL, NULL);
 				terminate = 1;
+				printf("Recv ping exit.\n");
 			}
+			printf("Ping received, current number of unique hosts: %lu\n", pings.length);
 		}
 
 		//Connection listener
@@ -213,15 +216,19 @@ void main_daemon() {
 			if (ret != SUCCESS && ret != CRITICAL_ERR) {
 				log_err(TCP_ERR_LOG, "<connecting>", NULL);
 				terminate = 1;
+				printf("Conn listener exit.\n");
 			} else if (ret == CRITICAL_ERR) {
 				log_err(CRIT_ERR_LOG, NULL, NULL);
 				terminate = 1;
+				printf("Conn listener critical exit.\n");
 			}
 
 			ret = vector_get_ref(&conns, conns.length-1, (char **) &vci);
 			if (ret != SUCCESS) {
+				printf("VECTOR ERROR 1\n");
 				log_err(VECTOR_ERR_LOG, NULL, NULL);
 				terminate = 1;
+				printf("Conn listener get vector ref exit.\n");
 			}
 
 			poll_fds[poll_fds_count].fd = vci->sock;
@@ -238,8 +245,10 @@ void main_daemon() {
 
 				ret = vector_get_ref(&conns, i-3, (char **) &vci);
 				if (ret != SUCCESS) {
+					printf("VECTOR ERROR 2\n");
 					log_err(VECTOR_ERR_LOG, NULL, NULL);
 					terminate = 1;
+					printf("Network read get vector ref exit.\n");
 				}
 
 				ret = conn_recv(vci);
@@ -247,6 +256,7 @@ void main_daemon() {
 					sprintf(err_buf, "%d", i);
 					log_err(TCP_ERR_LOG, err_buf, NULL);
 					terminate = 1;
+					printf("Network read conn recv exit.\n");
 					//TODO in future, if fail to receive, handle it gracefully
 					//instead of quitting.
 				}
@@ -255,6 +265,7 @@ void main_daemon() {
 
 					ret = vector_rmv(&conns, i-3);
 					if (ret != SUCCESS) {
+						printf("VECTOR ERROR 3\n");
 						log_err(VECTOR_ERR_LOG, NULL, NULL);
 						terminate = 1;
 					}
@@ -263,6 +274,7 @@ void main_daemon() {
 					if (ret != SUCCESS) {
 						log_err(CRIT_ERR_LOG, NULL, NULL);
 						terminate = 1;
+						printf("Network read poll fds remove exit.\n");
 					}
 					--poll_fds_count;
 				}
@@ -273,8 +285,10 @@ void main_daemon() {
 				
 				ret = vector_get_ref(&conns, i-3, (char **) &vci);
 				if (ret != SUCCESS) {
+					printf("VECTOR ERROR 4\n");
 					log_err(VECTOR_ERR_LOG, NULL, NULL);
 					terminate = 1;
+					printf("Network write get vector ref exit.\n");
 				}
 
 				ret = conn_send(vci);
@@ -282,19 +296,23 @@ void main_daemon() {
 					sprintf(err_buf, "%d", i);
 					log_err(TCP_ERR_LOG, err_buf, NULL);
 					terminate = 1;
+					printf("Network write conn send exit.\n");
 				}
 
 				if (vci->status == CONN_STAT_SEND_COMPLETE) {
 					
 					ret = vector_rmv(&conns, i-3);
 					if (ret != SUCCESS) {
+						printf("VECTOR ERROR 5\n");
 						log_err(VECTOR_ERR_LOG, NULL, NULL);
 						terminate = 1;
+						printf("Network write vector rmv exit.\n");
 					}
 					ret = poll_fds_remove(poll_fds, poll_fds_count, i);
 					if (ret != SUCCESS) {
 						log_err(CRIT_ERR_LOG, NULL, NULL);
 						terminate = 1;
+						printf("Network write poll fds remove exit.\n");
 					}
 					--poll_fds_count;
 				}
@@ -308,6 +326,7 @@ void main_daemon() {
 			if (ret != SUCCESS && ret != FAIL && ret != REQUEST_LIST) {
 				log_err(UNIX_ERR_LOG, NULL, NULL);
 				terminate = 1;
+				printf("Req listener receive exit.\n");
 			}
 
 			//If request was unsuccessful / unauthorised
@@ -322,8 +341,10 @@ void main_daemon() {
 				ret = vector_get_ref(&pings, (unsigned long) rli.target_host_id, 
 									 (char **) &ppi);
 				if (ret != SUCCESS) {
+					printf("VECTOR ERROR 6\n");
 					log_err(VECTOR_ERR_LOG, NULL, NULL);
 					terminate = 1;
+					printf("Req listener get vector ref exit.\n");
 				}
 				port_buf = strtol(options_arr+(TCP_PORT * PATH_MAX), NULL, 10);
 				ppi->addr.sin6_port = htons(port_buf);
@@ -332,12 +353,15 @@ void main_daemon() {
 					sprintf(err_buf, "%d", rli.target_host_id);
 					log_err(TCP_ERR_LOG, err_buf, NULL);
 					terminate = 1; //TODO in future, handle gracefully
+					printf("Req listener conn initiate exit.\n");
 				}
 
 				ret = vector_get_ref(&conns, conns.length-1, (char **) &vci);
 				if (ret != SUCCESS) {
+					printf("VECTOR ERROR 7\n");
 					log_err(VECTOR_ERR_LOG, NULL, NULL);
 					terminate = 1;
+					printf("Req listener get vector ref second exit.\n");
 				}
 
 				poll_fds[poll_fds_count].fd = vci->sock;
@@ -348,6 +372,7 @@ void main_daemon() {
 			} else if (ret != REQUEST_LIST) {
 				log_err(CRIT_ERR_LOG, NULL, NULL);
 				terminate = 1;
+				printf("Strange and seemingly unnecessary exit?\n");
 
 			} //End request
 		}
@@ -357,6 +382,7 @@ void main_daemon() {
 		if (ret != SUCCESS) {
 			log_err(CRIT_ERR_LOG, NULL, NULL);
 			terminate = 1;
+			printf("Ping time exit.\n");
 		}
 
 		//Check for need to send out ping
@@ -365,7 +391,9 @@ void main_daemon() {
 			if (ret != SUCCESS) {
 				log_err(UDP_ERR_LOG, NULL, NULL);
 				terminate = 1;
+				printf("Ping sent exit.\n");
 			}
+			printf("Ping sent.\n");
 		}
 	}
 

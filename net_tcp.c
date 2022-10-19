@@ -97,6 +97,7 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	char id_buf[16] = {};
 	char filename[NAME_MAX] = {};
 	int filename_end;
+	char dir_copy[PATH_MAX] = {};
 	conn_info_t * ci;
 	socklen_t addr_len = sizeof(cli.addr);
 	
@@ -164,9 +165,10 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	} //End wait to receive filename
 
 	//Now, create file at /dir/filename
-	strcat(dir, "/");
-	strcat(dir, filename);
-	ci->fd = open(dir, O_WRONLY | O_CREAT, 0644);
+	strcat(dir_copy, dir);
+	strcat(dir_copy, "/");
+	strcat(dir_copy, filename);
+	ci->fd = open(dir_copy, O_WRONLY | O_CREAT, 0644);
 	if (ci->fd == -1) { 
 		close(ci->sock);
 		ret = vector_rmv(conns, conns->length - 1);

@@ -49,7 +49,7 @@ int send_ping(send_ping_info_t * si, int msg) {
 
 	ssize_t ret;
 	char body[2][MSG_SIZE] = {"scarlet-ping", "scarlet-exit"};
-	
+
 	ret = sendto(si->sock, body[msg], strlen(body[msg]), 0,
 			     (struct sockaddr *) &si->addr, sizeof(si->addr));
 	if (ret == -1) { close(si->sock); return SOCK_SEND_ERR; }
@@ -63,6 +63,7 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 
 	ssize_t ret;
 	int rett;
+	int found = 0;
 	unsigned long pos;
 	struct addr_ping_info * api;
 	char id_buf[16] = {};
@@ -79,8 +80,18 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 		return SOCK_RECV_ERR;
 	}
 
-	rett = vector_get_pos_by_dat(pings, (char *) &recv_addr, &pos);
-	if (rett != SUCCESS && rett != FAIL) return rett;
+	//Compare sender's address with existing hosts
+	//rett = vector_get_pos_by_dat(pings, (char *) &recv_addr, &pos);
+	//if (rett != SUCCESS && rett != FAIL) return rett;
+	for (int i = 0; i < pings->length; i++) {
+		rett = vector_get_ref(pings, i, (char **) &api);
+		if (rett != SUCCESS) return rett;
+		rett = memcmp(recv_addr.sin6_addr.s6_addr, api->addr.sin6_addr.s6_addr,
+				      IPV6_ADDR_ARR_SIZE);
+		if (rett) continue;
+		found = 1;
+		pos = i;
+	}
 
 	//Check contents of message
 	//If exit
@@ -96,7 +107,7 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 	} else if (!(strcmp(body, "scarlet-ping"))) {
 
 		//If ping from new, untracked host
-		if (rett == FAIL) {
+		if (found == 0) {
 
 			rett = vector_add(pings, pos, NULL, VECTOR_APPEND_TRUE);
 			if (rett != SUCCESS) return rett;
@@ -108,7 +119,7 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 			log_act(NEW_CONN_ACT, id_buf, NULL);
 
 		//Else if ping from known, tracked host
-		} else if (rett == SUCCESS) {
+		} else if (found == 1) {
 
 			rett = vector_get_ref(pings, pos, (char **) &api);
 			if (rett != SUCCESS) return rett;
@@ -128,7 +139,7 @@ int init_send_ping_info(send_ping_info_t * si, char * group_addr_str,
 	int ret;
 
 	//Create socket
-	si->sock = socket(AF_INET6, SOCK_DGRAM, 0);
+	si->sock = socket(AF_INET6, SOCK_DGRAM | SOCK_NONBLOCK, 0);
 	if (si->sock == -1) return SOCK_OPEN_ERR;
 
 	//Create destination address
