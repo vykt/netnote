@@ -53,9 +53,6 @@ int term(send_ping_info_t * si) {
 
 	int ret;
 
-	//Send terminate signal
-	ret = send_ping(si, MSG_EXIT);
-
 	//Remove pid file
 	ret = remove("/var/run/scarlet.pid");
 	if (ret == -1) exit(EXIT_ERR);
