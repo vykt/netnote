@@ -24,8 +24,8 @@ int log_err(int err_id, char * id, char * file) {
 	char log_msg_buf[LOG_LINE_SIZE] = {};
 	char log_buf[LOG_LINE_SIZE] = "[ERR] [";
 
-	char * log_dir_path = "/var/log/scarlet";
-	char * log_path = "/var/log/scarlet/scarlet.log";
+	char * log_dir_path = "/var/log/netnoted";
+	char * log_path = "/var/log/netnoted/netnoted.log";
 
 	char err_messages[LOG_ERR_NUM][LOG_LINE_SIZE] = {
 		"Internal vector error has occured.\n",
@@ -103,8 +103,8 @@ int log_act(int act_id, char * id, char * file) {
 	char log_msg_buf[LOG_LINE_SIZE] = {};
 	char log_buf[LOG_LINE_SIZE] = "[ACT] [";
 
-	char * log_dir_path = "/var/log/scarlet";
-	char * log_path = "/var/log/scarlet/scarlet.log";
+	char * log_dir_path = "/var/log/netnoted";
+	char * log_path = "/var/log/netnoted/netnoted.log";
 
 	char log_messages[LOG_ACT_NUM][LOG_LINE_SIZE] = {
 		"Daemon started.\n",

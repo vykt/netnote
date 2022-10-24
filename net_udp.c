@@ -48,7 +48,7 @@ int check_ping_times(vector_t * pings) {
 int send_ping(send_ping_info_t * si, int msg) {
 
 	ssize_t ret;
-	char body[2][MSG_SIZE] = {"scarlet-ping", "scarlet-exit"};
+	char body[2][MSG_SIZE] = {"netnoted-ping", "netnoted-exit"};
 
 	ret = sendto(si->sock, body[msg], strlen(body[msg]), 0,
 			     (struct sockaddr *) &si->addr, sizeof(si->addr));
@@ -74,11 +74,9 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 	ret = recvfrom(ri->sock, body, sizeof(body), 0,
 			       (struct sockaddr *) &recv_addr, &recv_addr_len);
 	if (ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {	
-		printf("RP First fail.\n");
 		return FAIL;
 	} else if (ret == -1) {
 		close(ri->sock);
-		printf("RP Sock recv.\n");
 		return SOCK_RECV_ERR;
 	}
 
@@ -87,7 +85,7 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 	//if (rett != SUCCESS && rett != FAIL) return rett;
 	for (int i = 0; i < pings->length; i++) {
 		rett = vector_get_ref(pings, i, (char **) &api);
-		if (rett != SUCCESS) { printf("RP Memcmp vector get ref.\n"); return rett; }
+		if (rett != SUCCESS) { return rett; }
 		rett = memcmp(recv_addr.sin6_addr.s6_addr, api->addr.sin6_addr.s6_addr,
 				      IPV6_ADDR_ARR_SIZE);
 		if (rett) continue;
@@ -96,15 +94,15 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 	}
 
 	//Check contents of message - If confirmed ping
-	if (!(strcmp(body, "scarlet-ping"))) {
+	if (!(strcmp(body, "netnoted-ping"))) {
 
 		//If ping from new, untracked host
 		if (found == 0) {
 
 			rett = vector_add(pings, pos, NULL, VECTOR_APPEND_TRUE);
-			if (rett != SUCCESS) { printf("RP vector add.\n"); return rett; }
+			if (rett != SUCCESS) { return rett; }
 			rett = vector_get_ref(pings, pings->length - 1, (char **) &api);
-			if (rett != SUCCESS) { printf("RP Second get vector ref.\n"); return rett; }
+			if (rett != SUCCESS) { return rett; }
 			api->addr = recv_addr;
 
 			sprintf(id_buf, "%lu", pings->length - 1);
@@ -114,7 +112,7 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 		} else if (found == 1) {
 
 			rett = vector_get_ref(pings, pos, (char **) &api);
-			if (rett != SUCCESS) { printf("RP Third get vector ref.\n"); return rett; }
+			if (rett != SUCCESS) { return rett; }
 		}
 
 		//Set last ping time

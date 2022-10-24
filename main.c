@@ -11,7 +11,7 @@
 #include "request.h"
 #include "error.h"
 
-int main(int argc, char ** argv) {
+int main(int argc, char ** argv, char ** envp) {
 
 	// -d, --daemon						: start daemon
 	// -s, --send <filename> <peer id>	: send filename
@@ -46,9 +46,9 @@ int main(int argc, char ** argv) {
 					return FAIL;
 				}
 				//Check if daemon is running
-				check_pid = fopen("/var/run/scarlet.pid", "r");
+				check_pid = fopen("/var/run/netnote/netnoted.pid", "r");
 				if (check_pid) {
-					printf("/var/run/scarlet.pid present, assuming daemon already running.\n");
+					printf("/var/run/netnote/netnoted.pid present, assuming daemon is already running.\n");
 					return FAIL;
 				}
 				main_daemon();
@@ -57,17 +57,17 @@ int main(int argc, char ** argv) {
 			case 's':
 				//int x = optind - 1;	
 				if (argv[optind-1] == NULL) {
-					printf("Use: scarlet -s <filename> <peer id>\n");
+					printf("Use: netnote -s <filename> <peer id>\n");
 					return FAIL;
 				}
 				realpath(argv[optind-1], file);
 				if (argv[optind] == NULL) {
-					printf("Use: scarlet -s <filename> <peer id>\n");
+					printf("Use: netnote -s <filename> <peer id>\n");
 					return FAIL;
 				}
 				peer_id = atoi(argv[optind]);
 				if (peer_id < 0) {
-					printf("Use: scalet -s <filename> <peer id>\n");
+					printf("Use: netnote -s <filename> <peer id>\n");
 					return FAIL;
 				}
 

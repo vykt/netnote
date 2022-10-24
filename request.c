@@ -19,19 +19,6 @@
 #include "vector.h"
 #include "error.h"
 
-/* TODO
- *
- *	When user requests to send some file, check their UID has read permission to said
- *	file.
- *
- *	Request format:
- *		"destination ID\file path"
- *				   OR
- *		"list"
- *
- *  Check user credentials using SO_PEERCRED, seteuid(2) to their UID, perform
- *  command, return to root permissions.
- */
 
 
 //Check user credentials for file, refuse send if authorisation not met
@@ -85,7 +72,7 @@ int req_send(req_info_t * ri) {
 	char sock_path[108] = {};	
 	char request[PATH_MAX+4] = {};
 	
-	const char * req_root = "/var/run/scarlet/";
+	const char * req_root = "/var/run/netnoted/";
 	const char * req_sock = "sock";
 
 	ri->sock = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -256,7 +243,7 @@ int init_req_listener(req_listener_info_t * rli) {
 	int ret;
 	char sock_path[108] = {}; //Max path of sockets, see man unix(7).
 
-	const char * req_root = "/var/run/scarlet/";
+	const char * req_root = "/var/run/netnoted/";
 	const char * req_sock = "sock";
 
 	//Create socket
@@ -277,7 +264,7 @@ int init_req_listener(req_listener_info_t * rli) {
 	if (ret == -1) { close(rli->sock); return SOCK_BIND_ERR; }
 
 	//Change socket permissions
-	ret = chmod("/var/run/scarlet/sock", 0666); //TODO TODO TODO change to 0660
+	ret = chmod("/var/run/netnoted/sock", 0660);
 	if (ret == -1) return SOCK_BIND_ERR;
 
 	//Listen
@@ -294,7 +281,7 @@ int close_req_listener(req_listener_info_t * rli) {
 	int ret;
 	ret = close(rli->sock);
 	if (ret == -1) return SOCK_CLOSE_ERR;
-	ret = remove("/var/run/scarlet/sock");
+	ret = remove("/var/run/netnoted/sock");
 	if (ret == -1) return SOCK_CLOSE_ERR;
 	return SUCCESS;
 }

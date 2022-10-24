@@ -55,17 +55,19 @@
 #define DAEMON_FORK_ERR 33
 #define DAEMON_HANDLER_ERR 34
 #define DAEMON_UN_SOCK_ERR 35
-#define DAEMON_PID_WRITE_ERR 36
-#define DAEMON_POLL_RMV_ERR 37
-#define DAEMON_CLEANUP_ERR 38
+#define DAEMON_NAME_ERR 36
+#define DAEMON_PID_WRITE_ERR 37
+#define DAEMON_POLL_RMV_ERR 38
+#define DAEMON_CLEANUP_ERR 39
+#define DAEMON_GROUP_ERR 40
 
 //log.h
-#define LOG_PATH_ERR 39
-#define LOG_ERR_ERR 40
-#define LOG_ACT_ERR 41
+#define LOG_PATH_ERR 41
+#define LOG_ERR_ERR 42
+#define LOG_ACT_ERR 43
 
 //critical errors
-#define CRITICAL_ERR 42
+#define CRITICAL_ERR 44
 
 
 //EXITS

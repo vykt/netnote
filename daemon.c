@@ -7,6 +7,7 @@
 #include <time.h>
 #include <errno.h>
 
+#include <sys/prctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/poll.h>
@@ -28,14 +29,14 @@
 
 
 //Looping condition
-int terminate = 0;
+volatile sig_atomic_t terminate = 0;
 
 
 //Cleanup files if error encountered before entering main loop
 void early_term() {
 	
-	remove("/var/run/scarlet.pid");
-	remove("/var/run/scarlet/sock");
+	remove("/var/run/netnote/netnoted.pid");
+	remove("/var/run/netnoted/sock");
 	log_act(STOP_ACT, NULL, NULL);
 	exit(EXIT_ERR);
 }
@@ -54,11 +55,11 @@ int term(send_ping_info_t * si) {
 	int ret;
 
 	//Remove pid file
-	ret = remove("/var/run/scarlet.pid");
+	ret = remove("/var/run/netnote/netnoted.pid");
 	if (ret == -1) exit(EXIT_ERR);
 
 	//Remove sock
-	ret = remove("/var/run/scarlet/sock");
+	ret = remove("/var/run/netnoted/sock");
 	if (ret == -1) exit(EXIT_ERR);
 
 	return SUCCESS;
@@ -106,7 +107,7 @@ void main_daemon() {
 	unsigned short poll_fds_count = 0;
 
 	//Config data
-	char * config_path = "/home/vykt/programming/scarlet/opts.conf"; //TODO change to /etc/scarlet.conf
+	char * config_path = "/etc/netnote.conf";
 	char * options_arr;
 
 	//Request data
@@ -193,7 +194,6 @@ void main_daemon() {
 		if (ret == -1) {
 			log_err(CRIT_ERR_LOG, NULL, NULL);
 			terminate = 1;
-			printf("Poll exit.\n");
 		}
 		
 		//Ping listener
@@ -202,9 +202,7 @@ void main_daemon() {
 			if (ret != SUCCESS && ret != FAIL) {
 				log_err(UDP_ERR_LOG, NULL, NULL);
 				terminate = 1;
-				printf("Recv ping exit.\n");
 			}
-			printf("Ping received, current number of unique hosts: %lu\n", pings.length);
 		}
 
 		//Connection listener
@@ -213,19 +211,15 @@ void main_daemon() {
 			if (ret != SUCCESS && ret != CRITICAL_ERR) {
 				log_err(TCP_ERR_LOG, "<connecting>", NULL);
 				terminate = 1;
-				printf("Conn listener exit.\n");
 			} else if (ret == CRITICAL_ERR) {
 				log_err(CRIT_ERR_LOG, NULL, NULL);
 				terminate = 1;
-				printf("Conn listener critical exit.\n");
 			}
 
 			ret = vector_get_ref(&conns, conns.length-1, (char **) &vci);
 			if (ret != SUCCESS) {
-				printf("VECTOR ERROR 1\n");
 				log_err(VECTOR_ERR_LOG, NULL, NULL);
 				terminate = 1;
-				printf("Conn listener get vector ref exit.\n");
 			}
 
 			poll_fds[poll_fds_count].fd = vci->sock;
@@ -242,27 +236,26 @@ void main_daemon() {
 
 				ret = vector_get_ref(&conns, i-3, (char **) &vci);
 				if (ret != SUCCESS) {
-					printf("VECTOR ERROR 2\n");
 					log_err(VECTOR_ERR_LOG, NULL, NULL);
 					terminate = 1;
-					printf("Network read get vector ref exit.\n");
 				}
 
 				ret = conn_recv(vci);
 				if (ret != SUCCESS) {
 					sprintf(err_buf, "%d", i);
 					log_err(TCP_ERR_LOG, err_buf, NULL);
-					terminate = 1;
-					printf("Network read conn recv exit.\n");
-					//TODO in future, if fail to receive, handle it gracefully
-					//instead of quitting.
+						
+					ret = vector_rmv(&conns, i-3);
+					if (ret != SUCCESS) {
+						log_err(VECTOR_ERR_LOG, NULL, NULL);
+						terminate = 1;
+					}
 				}
 
 				if (vci->status == CONN_STAT_RECV_COMPLETE) {
 
 					ret = vector_rmv(&conns, i-3);
 					if (ret != SUCCESS) {
-						printf("VECTOR ERROR 3\n");
 						log_err(VECTOR_ERR_LOG, NULL, NULL);
 						terminate = 1;
 					}
@@ -271,7 +264,6 @@ void main_daemon() {
 					if (ret != SUCCESS) {
 						log_err(CRIT_ERR_LOG, NULL, NULL);
 						terminate = 1;
-						printf("Network read poll fds remove exit.\n");
 					}
 					--poll_fds_count;
 				}
@@ -282,34 +274,33 @@ void main_daemon() {
 				
 				ret = vector_get_ref(&conns, i-3, (char **) &vci);
 				if (ret != SUCCESS) {
-					printf("VECTOR ERROR 4\n");
 					log_err(VECTOR_ERR_LOG, NULL, NULL);
 					terminate = 1;
-					printf("Network write get vector ref exit.\n");
 				}
 
 				ret = conn_send(vci);
 				if (ret != SUCCESS) {
 					sprintf(err_buf, "%d", i);
 					log_err(TCP_ERR_LOG, err_buf, NULL);
-					terminate = 1;
-					printf("Network write conn send exit.\n");
+					
+					ret = vector_rmv(&conns, i-3);
+					if (ret != SUCCESS) {
+						log_err(VECTOR_ERR_LOG, NULL, NULL);
+						terminate = 1;
+					}
 				}
 
 				if (vci->status == CONN_STAT_SEND_COMPLETE) {
 					
 					ret = vector_rmv(&conns, i-3);
 					if (ret != SUCCESS) {
-						printf("VECTOR ERROR 5\n");
 						log_err(VECTOR_ERR_LOG, NULL, NULL);
 						terminate = 1;
-						printf("Network write vector rmv exit.\n");
 					}
 					ret = poll_fds_remove(poll_fds, poll_fds_count, i);
 					if (ret != SUCCESS) {
 						log_err(CRIT_ERR_LOG, NULL, NULL);
 						terminate = 1;
-						printf("Network write poll fds remove exit.\n");
 					}
 					--poll_fds_count;
 				}
@@ -323,7 +314,6 @@ void main_daemon() {
 			if (ret != SUCCESS && ret != FAIL && ret != REQUEST_LIST) {
 				log_err(UNIX_ERR_LOG, NULL, NULL);
 				terminate = 1;
-				printf("Req listener receive exit.\n");
 			}
 
 			//If request was unsuccessful / unauthorised
@@ -338,10 +328,8 @@ void main_daemon() {
 				ret = vector_get_ref(&pings, (unsigned long) rli.target_host_id, 
 									 (char **) &ppi);
 				if (ret != SUCCESS) {
-					printf("VECTOR ERROR 6\n");
 					log_err(VECTOR_ERR_LOG, NULL, NULL);
 					terminate = 1;
-					printf("Req listener get vector ref exit.\n");
 				}
 				port_buf = strtol(options_arr+(TCP_PORT * PATH_MAX), NULL, 10);
 				ppi->addr.sin6_port = htons(port_buf);
@@ -350,15 +338,12 @@ void main_daemon() {
 					sprintf(err_buf, "%d", rli.target_host_id);
 					log_err(TCP_ERR_LOG, err_buf, NULL);
 					terminate = 1; //TODO in future, handle gracefully
-					printf("Req listener conn initiate exit.\n");
 				}
 
 				ret = vector_get_ref(&conns, conns.length-1, (char **) &vci);
 				if (ret != SUCCESS) {
-					printf("VECTOR ERROR 7\n");
 					log_err(VECTOR_ERR_LOG, NULL, NULL);
 					terminate = 1;
-					printf("Req listener get vector ref second exit.\n");
 				}
 
 				poll_fds[poll_fds_count].fd = vci->sock;
@@ -369,7 +354,6 @@ void main_daemon() {
 			} else if (ret != REQUEST_LIST) {
 				log_err(CRIT_ERR_LOG, NULL, NULL);
 				terminate = 1;
-				printf("Strange and seemingly unnecessary exit?\n");
 
 			} //End request
 		}
@@ -379,7 +363,6 @@ void main_daemon() {
 		if (ret != SUCCESS) {
 			log_err(CRIT_ERR_LOG, NULL, NULL);
 			terminate = 1;
-			printf("Ping time exit.\n");
 		}
 
 		//Check for need to send out ping
@@ -388,9 +371,7 @@ void main_daemon() {
 			if (ret != SUCCESS) {
 				log_err(UDP_ERR_LOG, NULL, NULL);
 				terminate = 1;
-				printf("Ping sent exit.\n");
 			}
-			printf("Ping sent.\n");
 		}
 	}
 
@@ -422,13 +403,13 @@ int init_daemon() {
 	struct sigaction action;
 
 	//Fork process
-	//proc_id = fork();
-	//if (proc_id == -1) { return DAEMON_FORK_ERR; }
+	proc_id = fork();
+	if (proc_id == -1) { return DAEMON_FORK_ERR; }
 
 	//Exit if parent
-	//if (proc_id > 0) {
-	//	exit(EXIT_NORMAL);
-	//}
+	if (proc_id > 0) {
+		exit(EXIT_NORMAL);
+	}
 
 	//Unmask file mode
 	umask(0);
@@ -437,25 +418,29 @@ int init_daemon() {
 	chdir("/");
 
 	//Close standard input/output streams
-	//close(STDIN_FILENO);
-	//close(STDOUT_FILENO);
-	//close(STDERR_FILENO);
-	
+	close(STDIN_FILENO);
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);
+
 	//Register term_handler as handler for SIGTERM
 	memset(&action, 0, sizeof(action));
 	action.sa_handler = term_handler;
 	ret = sigaction(SIGTERM, &action, NULL);
 	if (ret == -1) return DAEMON_HANDLER_ERR;
 
+	//Change process name to 'netnoted'
+	ret = prctl(PR_SET_NAME, "netnoted", NULL, NULL, NULL);
+	if (ret == -1) return DAEMON_NAME_ERR;
+
 	//Remove previous PID if present
-	ret = remove("/var/run/scarlet.pid");
+	ret = remove("/var/run/netnote/netnoted.pid");
 	if (ret == -1 && errno != ENOENT) return DAEMON_PID_WRITE_ERR;
 
-	//Write PID to /var/run/scarlet.pid
-	fd = open("/var/run/scarlet.pid", O_WRONLY | O_CREAT);
+	//Write PID to /var/run/netnote/netnoted.pid
+	fd = open("/var/run/netnote/netnoted.pid", O_WRONLY | O_CREAT);
 	if (fd == -1) return DAEMON_PID_WRITE_ERR;
 
-	ret = chmod("/var/run/scarlet.pid", 0644);
+	ret = chmod("/var/run/netnote/netnoted.pid", 0644);
 	if (ret == -1) return DAEMON_PID_WRITE_ERR;
 
 	proc_id = getpid();
@@ -463,11 +448,11 @@ int init_daemon() {
 	close(fd);
 
 	//Create unix socket for communicating with client
-	ret = mkdir("/var/run/scarlet", 0755);
+	ret = mkdir("/var/run/netnoted", 0755);
 	if (ret == -1 && errno != EEXIST) return DAEMON_UN_SOCK_ERR;
 
 	//If present due to improper exit, remove previous socket
-	ret = remove("/var/run/scarlet/sock");
+	ret = remove("/var/run/netnoted/sock");
 	if (ret == -1 && errno != ENOENT) return DAEMON_UN_SOCK_ERR;
 
 	return SUCCESS;

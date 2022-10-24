@@ -82,7 +82,7 @@ int config_read(char * conf_path, char * options_arr) {
 	//TODO check all options get read
 	for (int i = 0; i < CONF_OPTION_NUM; i++) {
 		
-		//Theoretically (lol), if option has not been read
+		//Theoretically (lol): if option has not been read
 		if (*(options_arr+(i * PATH_MAX)) == 0) {
 			free(conf_line);
 			fclose(fd);

@@ -1,11 +1,13 @@
 #include <unistd.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <time.h>
+#include <grp.h>
 #include <errno.h>
-#include <linux/limits.h>
 
+#include <linux/limits.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 
@@ -100,7 +102,8 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	char dir_copy[PATH_MAX] = {};
 	conn_info_t * ci;
 	socklen_t addr_len = sizeof(cli.addr);
-	
+	struct group * grp_netnote;
+
 	//Accept incoming connection
 	sock_conn = accept(cli.sock, (struct sockaddr *) &cli.addr, &addr_len);
 	if (sock_conn == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
@@ -181,6 +184,23 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 		ret = vector_rmv(conns, conns->length - 1);
 		if (ret != SUCCESS) return CRITICAL_ERR;
 		return FILE_OPEN_ERR;
+	}
+
+	//Change group ownership
+	grp_netnote = getgrnam("netnote");
+	if (grp_netnote == NULL) {
+		close(ci->sock);
+		ret = vector_rmv(conns, conns->length - 1);
+		if (ret != SUCCESS) return CRITICAL_ERR;
+		return DAEMON_GROUP_ERR;
+	}
+
+	ret = fchown(ci->fd, 0, grp_netnote->gr_gid);
+	if (ret == -1) {
+		close(ci->sock);
+		ret = vector_rmv(conns, conns->length - 1);
+		if (ret != SUCCESS) return CRITICAL_ERR;
+		return DAEMON_GROUP_ERR;
 	}
 
 	//Finally, write the remainder of received buffer into the file if needed.
