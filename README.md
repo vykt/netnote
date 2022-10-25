@@ -25,12 +25,13 @@ $ git clone https://github.com/vykt/netnote
 
 Build:
 ```
-$ cd netnote
+$ cd netnote/src
 $ make
 ```
 
 Install:
 ```
+$ cd ..
 # ./install.sh
 ```
 
