@@ -437,6 +437,9 @@ int init_daemon() {
 	if (ret == -1 && errno != ENOENT) return DAEMON_PID_WRITE_ERR;
 
 	//Write PID to /var/run/netnote/netnoted.pid
+	ret = mkdir("/var/run/netnote", 0755);
+	if (ret == -1) return DAEMON_PID_WRITE_ERR;
+
 	fd = open("/var/run/netnote/netnoted.pid", O_WRONLY | O_CREAT);
 	if (fd == -1) return DAEMON_PID_WRITE_ERR;
 

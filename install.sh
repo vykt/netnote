@@ -1,9 +1,8 @@
 #!/bin/sh
 
 INSTALL_DIR=/usr/local/bin
+DOWNLOAD_DIR=/var/netnote
 MAN_DIR=/usr/share/man
-EXAMPLE=/home/vykt/programming
-
 
 #Check installation
 #If not running as root:
@@ -32,6 +31,9 @@ fi
 
 #create netnote group
 groupadd netnote
+
+#create downloads directory
+mkdir ${DOWNLOAD_DIR}
 
 #copy netnote.conf
 cp ./netnote.conf /etc
