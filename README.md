@@ -92,7 +92,7 @@ The configuration file at ```/etc/netnote.conf``` uses the following format:
 
 Comments may be added by starting the line with the '#' character, as such:
 ```
-\#comment
+#comment
 ```
 
 The following configuration options are available and must be specified:

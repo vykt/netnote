@@ -436,8 +436,12 @@ int init_daemon() {
 	ret = remove("/var/run/netnote/netnoted.pid");
 	if (ret == -1 && errno != ENOENT) return DAEMON_PID_WRITE_ERR;
 
+	//Create directory in /var/run if not present
+	ret = mkdir("/var/run/netnoted", 0755);
+	if (ret == -1 && errno != EEXIST) return DAEMON_UN_SOCK_ERR;
+
 	//Write PID to /var/run/netnote/netnoted.pid
-	ret = mkdir("/var/run/netnote", 0755);
+	ret = mkdir("/var/run/netnoted", 0755);
 	if (ret == -1) return DAEMON_PID_WRITE_ERR;
 
 	fd = open("/var/run/netnote/netnoted.pid", O_WRONLY | O_CREAT);
@@ -449,10 +453,6 @@ int init_daemon() {
 	proc_id = getpid();
 	dprintf(fd, "%d\n", proc_id);
 	close(fd);
-
-	//Create unix socket for communicating with client
-	ret = mkdir("/var/run/netnoted", 0755);
-	if (ret == -1 && errno != EEXIST) return DAEMON_UN_SOCK_ERR;
 
 	//If present due to improper exit, remove previous socket
 	ret = remove("/var/run/netnoted/sock");
