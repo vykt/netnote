@@ -433,21 +433,21 @@ int init_daemon() {
 	if (ret == -1) return DAEMON_NAME_ERR;
 
 	//Remove previous PID if present
-	ret = remove("/var/run/netnote/netnoted.pid");
+	ret = remove("/var/run/netnoted/netnoted.pid");
 	if (ret == -1 && errno != ENOENT) return DAEMON_PID_WRITE_ERR;
 
 	//Create directory in /var/run if not present
 	ret = mkdir("/var/run/netnoted", 0755);
 	if (ret == -1 && errno != EEXIST) return DAEMON_UN_SOCK_ERR;
 
-	//Write PID to /var/run/netnote/netnoted.pid
+	//Write PID to /var/run/netnoted/netnoted.pid
 	ret = mkdir("/var/run/netnoted", 0755);
-	if (ret == -1) return DAEMON_PID_WRITE_ERR;
+	if (ret == -1 && errno != EEXIST) return DAEMON_PID_WRITE_ERR;
 
-	fd = open("/var/run/netnote/netnoted.pid", O_WRONLY | O_CREAT);
+	fd = open("/var/run/netnoted/netnoted.pid", O_WRONLY | O_CREAT);
 	if (fd == -1) return DAEMON_PID_WRITE_ERR;
 
-	ret = chmod("/var/run/netnote/netnoted.pid", 0644);
+	ret = chmod("/var/run/netnoted/netnoted.pid", 0644);
 	if (ret == -1) return DAEMON_PID_WRITE_ERR;
 
 	proc_id = getpid();
