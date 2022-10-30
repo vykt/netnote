@@ -35,7 +35,6 @@ volatile sig_atomic_t terminate = 0;
 //Cleanup files if error encountered before entering main loop
 void early_term() {
 	
-	remove("/var/run/netnote/netnoted.pid");
 	remove("/var/run/netnoted/sock");
 	log_act(STOP_ACT, NULL, NULL);
 	exit(EXIT_ERR);
@@ -45,6 +44,7 @@ void early_term() {
 //Respond to SIGTERM
 void term_handler(int signum) {
 
+	remove("/var/run/netnote/netnoted.pid");
 	terminate = 1;
 }
 

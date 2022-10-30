@@ -141,3 +141,13 @@ $ netnote -s reading_list 2
 
 
 ### FUTURE CONSIDERATIONS:
+
+-Encryption of files as they're sent over the network, using an existing cryptography 
+ library and symmetric encryption using something like SHA256.
+
+-Further develop the protocol to include exit messages as originally planned, as well 
+ as to handle errors more glacefully.
+
+-Provide feedback to reqeustee upon transmission failure.
+
+-Improve logging to be more verbose and specific.

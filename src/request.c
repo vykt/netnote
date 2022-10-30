@@ -2,16 +2,18 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <linux/limits.h>
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <errno.h>
+#include <grp.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
 #include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/un.h>
+#include <arpa/inet.h>
+#include <linux/limits.h>
 
 #include "log.h"
 #include "request.h"
@@ -246,6 +248,8 @@ int init_req_listener(req_listener_info_t * rli) {
 	const char * req_root = "/var/run/netnoted/";
 	const char * req_sock = "sock";
 
+	struct group * netnote_group;
+
 	//Create socket
 	rli->sock = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	if (rli->sock == -1) return SOCK_OPEN_ERR;
@@ -266,6 +270,13 @@ int init_req_listener(req_listener_info_t * rli) {
 	//Change socket permissions
 	ret = chmod("/var/run/netnoted/sock", 0660);
 	if (ret == -1) return SOCK_BIND_ERR;
+
+	//Change socket group ownership
+	netnote_group = getgrnam("netnote");
+	if (netnote_group == NULL) { close(rli->sock); return REQUEST_CHGRP_ERR; }
+
+	ret = chown(sock_path, 0, netnote_group->gr_gid);
+	if (ret == -1) { close(rli->sock); return REQUEST_CHGRP_ERR; }
 
 	//Listen
 	ret = listen(rli->sock, REQ_BACKLOG);

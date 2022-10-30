@@ -8,7 +8,7 @@
 #include "vector.h"
 
 
-#define PING_TIMEOUT 3600 //seconds
+#define PING_TIMEOUT 30 //seconds
 #define PING_INTERVAL 8 //seconds
 #define MSG_SIZE 32
 #define IPV6_ADDR_ARR_SIZE 16 //man 7 ipv6
