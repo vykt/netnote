@@ -48,7 +48,7 @@ int main(int argc, char ** argv, char ** envp) {
 				//Check if daemon is running
 				check_pid = fopen("/var/run/netnoted/netnoted.pid", "r");
 				if (check_pid) {
-					printf("/var/run/netnote/netnoted.pid present, assuming daemon is already running.\n");
+					printf("/var/run/netnoted/netnoted.pid present, assuming daemon is already running.\n");
 					return FAIL;
 				}
 				main_daemon();
