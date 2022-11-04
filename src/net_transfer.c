@@ -87,6 +87,7 @@ int conn_recv(conn_info_t * ci) {
 
 	//int ret;
 	ssize_t rd_wr;
+	ssize_t rd_wr_file;
 	char recv_buf[DF_LEN] = {};
 
 	rd_wr = recv(ci->sock, recv_buf, DF_LEN, 0);
@@ -99,11 +100,17 @@ int conn_recv(conn_info_t * ci) {
 		return SUCCESS;
 	}
 	
-	rd_wr = write(ci->fd, recv_buf, rd_wr);
-	if (rd_wr == -1) {
+	rd_wr_file = write(ci->fd, recv_buf, rd_wr);
+	if (rd_wr_file == -1 && errno != EAGAIN) {
 		close(ci->sock);
 		close(ci->fd);
 		return FILE_WRITE_ERR;
+	} else if (rd_wr_file == -1 && errno == EAGAIN) {
+		while (1) {
+			rd_wr_file = write(ci->fd, recv_buf, rd_wr);
+			if (rd_wr_file == 0) { close(ci->fd); return SOCK_RECV_ERR; }
+			if (rd_wr_file > 0) break;
+		}
 	}
 
 	return SUCCESS;

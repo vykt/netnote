@@ -27,6 +27,9 @@
 #include "vector.h"
 #include "error.h"
 
+//TODO debug include
+#include <stdio.h>
+
 
 //Looping condition
 volatile sig_atomic_t terminate = 0;
@@ -47,6 +50,15 @@ void term_handler(int signum) {
 	remove("/var/run/netnote/netnoted.pid");
 	terminate = 1;
 }
+
+//Respond to SIGPIPE
+void broken_pipe_handler(int signum) {
+
+	//TODO remove, debug
+	printf("Broken pipe received\n");
+
+}
+
 
 
 //Called on unexpected exit to attempt some cleanup.
@@ -400,16 +412,17 @@ int init_daemon() {
 	int ret;
 	int fd;
 	pid_t proc_id;
-	struct sigaction action;
+	struct sigaction kill_act;
+	struct sigaction broken_pipe_act;
 
 	//Fork process
-	proc_id = fork();
-	if (proc_id == -1) { return DAEMON_FORK_ERR; }
+	//proc_id = fork();
+	//if (proc_id == -1) { return DAEMON_FORK_ERR; }
 
 	//Exit if parent
-	if (proc_id > 0) {
-		exit(EXIT_NORMAL);
-	}
+	//if (proc_id > 0) {
+	//	exit(EXIT_NORMAL);
+	//}
 
 	//Unmask file mode
 	umask(0);
@@ -418,14 +431,20 @@ int init_daemon() {
 	chdir("/");
 
 	//Close standard input/output streams
-	close(STDIN_FILENO);
-	close(STDOUT_FILENO);
-	close(STDERR_FILENO);
+	//close(STDIN_FILENO);
+	//close(STDOUT_FILENO);
+	//close(STDERR_FILENO);
 
 	//Register term_handler as handler for SIGTERM
-	memset(&action, 0, sizeof(action));
-	action.sa_handler = term_handler;
-	ret = sigaction(SIGTERM, &action, NULL);
+	memset(&kill_act, 0, sizeof(kill_act));
+	kill_act.sa_handler = term_handler;
+	ret = sigaction(SIGTERM, &kill_act, NULL);
+	if (ret == -1) return DAEMON_HANDLER_ERR;
+
+	//Register term_handler as handler for SIGPIPE
+	memset(&broken_pipe_act, 0, sizeof(broken_pipe_act));
+	broken_pipe_act.sa_handler = broken_pipe_handler;
+	ret = sigaction(SIGPIPE, &broken_pipe_act, NULL);
 	if (ret == -1) return DAEMON_HANDLER_ERR;
 
 	//Change process name to 'netnoted'

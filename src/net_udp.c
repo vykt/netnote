@@ -80,9 +80,10 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 		return SOCK_RECV_ERR;
 	}
 
+	printf("Received something!\n"); //TODO debug, remove
+	printf("Body of message: %s\n\n", body);
+
 	//Compare sender's address with existing hosts
-	//rett = vector_get_pos_by_dat(pings, (char *) &recv_addr, &pos);
-	//if (rett != SUCCESS && rett != FAIL) return rett;
 	for (int i = 0; i < pings->length; i++) {
 		rett = vector_get_ref(pings, i, (char **) &api);
 		if (rett != SUCCESS) { return rett; }
@@ -90,6 +91,7 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 				      IPV6_ADDR_ARR_SIZE);
 		if (rett) continue;
 		found = 1;
+		printf("Found match with existing hosts\n"); //TODO debug, remove
 		pos = i;
 	}
 
