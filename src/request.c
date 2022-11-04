@@ -136,6 +136,7 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 
 	char * perm_err_response = "Permission error.";
 	char * file_exist_err_response = "File exist error.";
+	char * out_of_bounds_err_response = "Requested id is out of range.";
 	char * successful_response = "Success.";
 
 	//Try listen
@@ -215,7 +216,12 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 	strcpy(rli->file, request_path);
 	ret = atoi(request_id);
 	if (ret == 0) return SOCK_RECV_REQ_ERR;
-	
+	if (ret > pings->length) {
+		rd_wr = send(sock_conn, out_of_bounds_err_response, 
+				     strlen(out_of_bounds_err_response), 0);
+		if (rd_wr == -1) { close(sock_conn); return SOCK_SEND_ERR; }
+	}
+
 	rli->target_host_id = ret - 1;
 	sprintf(id_buf, "%d", rli->target_host_id);
 	log_act(SEND_ACT, id_buf, strrchr(rli->file, '/') + 1);
