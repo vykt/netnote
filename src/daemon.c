@@ -232,6 +232,7 @@ void main_daemon() {
 			if (ret != SUCCESS) {
 				log_err(VECTOR_ERR_LOG, NULL, NULL);
 				terminate = 1;
+				early_term();
 			}
 
 			poll_fds[poll_fds_count].fd = vci->sock;
@@ -300,6 +301,12 @@ void main_daemon() {
 						log_err(VECTOR_ERR_LOG, NULL, NULL);
 						terminate = 1;
 					}
+				
+					ret = poll_fds_remove(poll_fds, poll_fds_count, i);
+					if (ret != SUCCESS) {
+						log_err(CRIT_ERR_LOG, NULL, NULL);
+						terminate = 1;
+					}
 				}
 
 				if (vci->status == CONN_STAT_SEND_COMPLETE) {
@@ -309,6 +316,7 @@ void main_daemon() {
 						log_err(VECTOR_ERR_LOG, NULL, NULL);
 						terminate = 1;
 					}
+
 					ret = poll_fds_remove(poll_fds, poll_fds_count, i);
 					if (ret != SUCCESS) {
 						log_err(CRIT_ERR_LOG, NULL, NULL);

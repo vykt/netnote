@@ -97,7 +97,7 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 	//Check contents of message - If confirmed ping
 	if (!(strcmp(body, "netnoted-ping"))) {
 
-		inet_ntop(AF_INET6, (void *) &ri->addr.sin6_addr, (void *) ping_text, sizeof(ri->addr));
+		inet_ntop(AF_INET6, (void *restrict) &ri->addr.sin6_addr, ping_text, 1024);
 		printf("Ping from %s\n", ping_text);
 
 		//If ping from new, untracked host
