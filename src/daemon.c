@@ -220,10 +220,9 @@ void main_daemon() {
 		//Connection listener
 		if (poll_fds[TCP_LISTENER].revents & POLLIN) {
 			ret = conn_listener(&conns, cli, (options_arr+(DL_PATH*PATH_MAX)));
-			if (ret != SUCCESS && ret != CRITICAL_ERR) {
+			if (ret != SUCCESS && ret != FAIL && ret != CRITICAL_ERR) {
 				log_err(TCP_ERR_LOG, "<connecting>", NULL);
-				terminate = 1;
-			} else if (ret == CRITICAL_ERR) {
+			} else {
 				log_err(CRIT_ERR_LOG, NULL, NULL);
 				terminate = 1;
 			}

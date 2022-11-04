@@ -29,7 +29,6 @@
 int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 
 	int ret;
-	int sock_conn;
 	ssize_t rd_wr;
 	ssize_t rd_wr_total = 0;
 	char * filename;
@@ -38,17 +37,15 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 	conn_info_t ci;
 
 	//Create socket
-	sock_conn = socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0);
-	if (sock_conn == -1) return SOCK_OPEN_ERR;
+	ci.sock = socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0);
+	if (ci.sock == -1) return SOCK_OPEN_ERR;
 
 	//Try to connect to conn
-	ret = connect(sock_conn, (struct sockaddr *) &addr, sizeof(addr));
-	if (ret == -1 && errno != EINPROGRESS) { close(sock_conn); return SOCK_CONNECT_ERR; }
+	ret = connect(ci.sock, (struct sockaddr *) &addr, sizeof(addr));
+	if (ret == -1 && errno != EINPROGRESS) { close(ci.sock); return SOCK_CONNECT_ERR; }
 
 	//Build conn_info
-	ci.sock = sock_conn;
 	ci.status = CONN_STAT_SEND_INPROG;
-	
 	ci.mmap_addr = NULL;
 	ci.mmap_size = 0;
 	ci.mmap_prog = 0;
@@ -87,7 +84,6 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 
 	int ret;
-	int sock_conn;
 	ssize_t rd_wr;
 	ssize_t rd_wr_total = 0;
 	char recv_buf[NAME_MAX+1] = {};
@@ -96,36 +92,29 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	char filename[NAME_MAX] = {};
 	int filename_end;
 	char dir_copy[PATH_MAX] = {};
-	conn_info_t * ci;
+	conn_info_t ci;
 	socklen_t addr_len = sizeof(cli.addr);
 	struct group * grp_netnote;
 
 	//Accept incoming connection
-	sock_conn = accept(cli.sock, (struct sockaddr *) &cli.addr, &addr_len);
-	if (sock_conn == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+	ci.sock = accept(cli.sock, (struct sockaddr *) &cli.addr, &addr_len);
+	if (ci.sock == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 		return FAIL;
-	} else if (sock_conn == -1) {
+	} else if (ci.sock == -1) {
 		close (cli.sock);
 		return SOCK_RECV_ERR;
 	}
 
 	//Set socket of connection to not block
-	ret = fcntl(sock_conn, F_SETFL, fcntl(sock_conn, F_GETFL, 0) | O_NONBLOCK);
-	if (ret == -1) { close(sock_conn); return SOCK_OPT_ERR; }
-
-	//Initialise conn
-	ret = vector_add(conns, 0, NULL, VECTOR_APPEND_TRUE);
-	if (ret != SUCCESS) return ret;
-	ret = vector_get_ref(conns, conns->length - 1, (char **) &ci);
-	if (ret != SUCCESS) return ret;
-	ci->sock = sock_conn;
-	ci->status = CONN_STAT_RECV_INPROG;
+	ret = fcntl(ci.sock, F_SETFL, fcntl(ci.sock, F_GETFL, 0) | O_NONBLOCK);
+	if (ret == -1) { close(ci.sock); return SOCK_OPT_ERR; }
+	ci.status = CONN_STAT_RECV_INPROG;
 
 	//Wait to receive filename
 	int recv_inprog = 1;
 	while (recv_inprog) {
 		
-		rd_wr = recv(ci->sock, recv_buf, NAME_MAX+1, 0);
+		rd_wr = recv(ci.sock, recv_buf, NAME_MAX+1, 0);
 		
 		//For every received character
 		for (int i = 0; i < rd_wr; i++) {
@@ -137,10 +126,8 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 
 				//if name length exceeds NAME_MAX
 				if ((strlen(recv_buf_total) + i) > NAME_MAX) {
-					close(ci->sock);
-					ret = vector_rmv(conns, conns->length - 1);
-					if (ret != SUCCESS) return CRITICAL_ERR;
-					return SOCK_RECV_NAME_ERR;
+					close(ci.sock);
+					return FAIL;
 				}
 
 				strcat(filename, recv_buf_total);
@@ -156,10 +143,8 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 		if (rd_wr_total <= NAME_MAX) {
 			strcat(recv_buf_total, recv_buf);
 		} else {
-			close(ci->sock);
-			ret = vector_rmv(conns, conns->length - 1);
-			if (ret != SUCCESS) return CRITICAL_ERR;
-			return SOCK_RECV_NAME_ERR;
+			close(ci.sock);
+			return FAIL;
 		}
 	} //End wait to receive filename
 
@@ -167,35 +152,27 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	strcat(dir_copy, dir);
 	strcat(dir_copy, "/");
 	strcat(dir_copy, filename);
-	ci->fd = open(dir_copy, O_WRONLY | O_CREAT, 0644);
-	if (ci->fd == -1) { 
-		close(ci->sock);
-		ret = vector_rmv(conns, conns->length - 1);
-		if (ret != SUCCESS) return CRITICAL_ERR;
+	ci.fd = open(dir_copy, O_WRONLY | O_CREAT, 0644);
+	if (ci.fd == -1) { 
+		close(ci.sock);
 		return FILE_OPEN_ERR;
 	}
-	ret = ftruncate(ci->fd, 0);
+	ret = ftruncate(ci.fd, 0);
 	if (ret == -1) {
-		close(ci->sock);
-		ret = vector_rmv(conns, conns->length - 1);
-		if (ret != SUCCESS) return CRITICAL_ERR;
+		close(ci.sock);
 		return FILE_OPEN_ERR;
 	}
 
 	//Change group ownership
 	grp_netnote = getgrnam("netnote");
 	if (grp_netnote == NULL) {
-		close(ci->sock);
-		ret = vector_rmv(conns, conns->length - 1);
-		if (ret != SUCCESS) return CRITICAL_ERR;
+		close(ci.sock);
 		return DAEMON_GROUP_ERR;
 	}
 
-	ret = fchown(ci->fd, 0, grp_netnote->gr_gid);
+	ret = fchown(ci.fd, 0, grp_netnote->gr_gid);
 	if (ret == -1) {
-		close(ci->sock);
-		ret = vector_rmv(conns, conns->length - 1);
-		if (ret != SUCCESS) return CRITICAL_ERR;
+		close(ci.sock);
 		return DAEMON_GROUP_ERR;
 	}
 
@@ -204,18 +181,20 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	if (left_bytes) {
 		rd_wr_total = 0;
 		while(1) {
-			rd_wr = write(ci->fd, recv_buf_total+filename_end+1,
+			rd_wr = write(ci.fd, recv_buf_total+filename_end+1,
 						strlen(recv_buf_total)-filename_end-1);
 			if (rd_wr == -1) {
-				close(ci->sock);
-				ret = vector_rmv(conns, conns->length - 1);
-				if (ret != SUCCESS) return CRITICAL_ERR;
-				return FILE_WRITE_ERR;
+				close(ci.sock);
+				return FAIL;
 			}
 			rd_wr_total = rd_wr_total + rd_wr;
 			if (rd_wr_total >= left_bytes) break;
 		}
 	} //End write remainder of received bytes
+
+	//Add to vector of ongoing connections
+	ret = vector_add(conns, 0, (char *) &ci, VECTOR_APPEND_TRUE);
+	if (ret != SUCCESS) return CRITICAL_ERR;
 
 	sprintf(id_buf, "%lu", conns->length - 1);
 	log_act(RECV_ACT, id_buf, filename);

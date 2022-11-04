@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
@@ -11,9 +12,6 @@
 #include "net_udp.h"
 #include "vector.h"
 #include "error.h"
-
-//DEBUG
-#include <stdio.h>
 
 
 int check_ping_times(vector_t * pings) {
@@ -71,9 +69,6 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 	struct sockaddr_in6 recv_addr;
 	socklen_t recv_addr_len = sizeof(recv_addr);
 
-	//TODO debug
-	char ping_text[1024] = {};
-
 	ret = recvfrom(ri->sock, body, sizeof(body), 0,
 			       (struct sockaddr *) &recv_addr, &recv_addr_len);
 	if (ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {	
@@ -97,13 +92,8 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 	//Check contents of message - If confirmed ping
 	if (!(strcmp(body, "netnoted-ping"))) {
 
-		inet_ntop(AF_INET6, (void *restrict) &ri->addr.sin6_addr, ping_text, 1024);
-		printf("Ping from %s\n", ping_text);
-
 		//If ping from new, untracked host
 		if (found == 0) {
-
-			printf("Adding new host!\n");
 
 			rett = vector_add(pings, pos, NULL, VECTOR_APPEND_TRUE);
 			if (rett != SUCCESS) { return rett; }
@@ -117,12 +107,9 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 		//Else if ping from known, tracked host
 		} else if (found == 1) {
 
-			printf("Updating old host!\n");
-
 			rett = vector_get_ref(pings, pos, (char **) &api);
 			if (rett != SUCCESS) { return rett; }
 		}
-		printf("\n"); //TODO debug, remove
 
 		//Set last ping time
 		api->last_ping = time(NULL);
