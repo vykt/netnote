@@ -222,9 +222,10 @@ void main_daemon() {
 			ret = conn_listener(&conns, cli, (options_arr+(DL_PATH*PATH_MAX)));
 			if (ret != SUCCESS && ret != FAIL && ret != CRITICAL_ERR) {
 				log_err(TCP_ERR_LOG, "<connecting>", NULL);
-			} else {
+			} else if (ret != SUCCESS) {
 				log_err(CRIT_ERR_LOG, NULL, NULL);
 				terminate = 1;
+				printf("Oh yeah, we out here.\n");
 			}
 
 			ret = vector_get_ref(&conns, conns.length-1, (char **) &vci);
@@ -339,6 +340,7 @@ void main_daemon() {
 		if (poll_fds[REQ_LISTENER].revents & POLLIN) {
 			ret = req_receive(&rli, &rc, &pings);
 			if (ret != SUCCESS && ret != FAIL && ret != REQUEST_LIST) {
+				
 				log_err(UNIX_ERR_LOG, NULL, NULL);
 				terminate = 1;
 			}

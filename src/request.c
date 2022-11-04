@@ -185,7 +185,7 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 
 		//Send reply to caller
 		rd_wr = send(sock_conn, reply, strlen(reply), 0);
-		if (rd_wr == -1) { close(sock_conn); return SOCK_SEND_ERR; }
+		if (rd_wr == -1) { close(sock_conn); return FAIL; }
 
 		close(sock_conn);
 		return REQUEST_LIST;
@@ -200,14 +200,14 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 	if (ret == REQUEST_PERM_ERR) {
 		rd_wr = send(sock_conn, perm_err_response,
 				     strlen(perm_err_response), 0);
-		if (rd_wr == -1) { close(sock_conn); return SOCK_SEND_ERR; }
+		if (rd_wr == -1) { close(sock_conn); return FAIL; }
 		close(sock_conn);
 		return FAIL;
 	//if file doesn't exist
 	} else if (ret == REQUEST_FILE_EXIST_ERR) {
 		rd_wr = send(sock_conn, file_exist_err_response,
 				     strlen(file_exist_err_response), 0);
-		if (rd_wr == -1) { close(sock_conn); return SOCK_SEND_ERR; }
+		if (rd_wr == -1) { close(sock_conn); return FAIL; }
 		close(sock_conn);
 		return FAIL;
 	}
