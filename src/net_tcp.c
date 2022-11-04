@@ -64,15 +64,11 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 
 	//Send filename
 	filename = strrchr(file, '/') + 1;
-	//strcpy(filename_buf, file);
-	//strcat(filename, "/");
 	strcat(filename_buf, filename);
 	strcat(filename_buf, "/");
 	while (1) {
 		rd_wr = send(ci.sock, filename_buf+rd_wr_total,
 				     strlen(filename_buf)-rd_wr_total, 0);
-		//rd_wr = send(ci.sock, filename_buf+rd_wr_total,
-		//		     strlen(filename_buf)-rd_wr_total, 0);
 
 		if (rd_wr == -1 && errno == EAGAIN ) { continue; }
 		if (rd_wr == -1 ) { close(ci.sock); return SOCK_SEND_NAME_ERR; }
