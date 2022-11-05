@@ -9,7 +9,7 @@
 
 
 #define PING_TIMEOUT 30 //seconds
-#define PING_INTERVAL 8 //seconds
+#define PING_INTERVAL 5 //seconds
 #define MSG_SIZE 32
 #define IPV6_ADDR_ARR_SIZE 16 //man 7 ipv6
 #define MSG_PING 0
@@ -38,7 +38,7 @@ struct recv_ping_info {
 
 	int sock;
 	struct sockaddr_in6 addr;
-	struct sockaddr_in6 addr_ignore;
+	//struct sockaddr_in6 addr_ignore;
 };
 
 
