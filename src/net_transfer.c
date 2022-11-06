@@ -71,9 +71,11 @@ int conn_send(conn_info_t * ci) {
 	}
 
 	len = get_len(ci);
+	printf("Sending socket: %d\n", ci->sock);
 	rd_wr = send(ci->sock, ci->mmap_addr + ci->mmap_prog, len, 0);
 	if (rd_wr == -1 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
 		close(ci->sock);
+		perror("conn_send - send");
 		return SOCK_SEND_ERR;
 	}
 
@@ -92,7 +94,9 @@ int conn_recv(conn_info_t * ci) {
 
 	rd_wr = recv(ci->sock, recv_buf, DF_LEN, 0);
 	if (rd_wr == -1 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
-		close(ci->fd); return SOCK_RECV_ERR;
+		perror("conn_recv - recv");
+		close(ci->fd);
+		return SOCK_RECV_ERR;
 	} else if (rd_wr == 0) {
 		close(ci->sock);
 		close(ci->fd);

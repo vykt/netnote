@@ -245,7 +245,7 @@ void main_daemon() {
 		for (int i = 3; i < poll_fds_count; i++) {
 
 			//Network read
-			if (poll_fds[i].revents & POLLIN) {
+			if (poll_fds[i].revents & POLLIN && poll_fds[i].events == POLLIN) {
 
 				ret = vector_get_ref(&conns, i-3, (char **) &vci);
 				if (ret != SUCCESS) {
@@ -290,7 +290,7 @@ void main_daemon() {
 			}
 
 			//Network write
-			if (poll_fds[i].revents & POLLOUT) {
+			if (poll_fds[i].revents & POLLOUT && poll_fds[i].events == POLLOUT) {
 				
 				ret = vector_get_ref(&conns, i-3, (char **) &vci);
 				if (ret != SUCCESS) {

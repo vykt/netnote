@@ -59,6 +59,8 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 	ret = connect(ci.sock, (struct sockaddr *) &addr, sizeof(addr));
 	if (ret == -1 && errno != EINPROGRESS) { close(ci.sock); return SOCK_CONNECT_ERR; }
 
+	printf("Connection socket: %d, connection status: %d\n", ci.sock, ret);
+
 	//Check connection status
 	/*conn_timeout = time(NULL);
 	while (1) {
