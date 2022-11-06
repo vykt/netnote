@@ -220,6 +220,8 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 		rd_wr = send(sock_conn, out_of_bounds_err_response, 
 				     strlen(out_of_bounds_err_response), 0);
 		if (rd_wr == -1) { close(sock_conn); return SOCK_SEND_ERR; }
+		close(sock_conn);
+		return FAIL;
 	}
 
 	rli->target_host_id = ret - 1;

@@ -31,18 +31,19 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 
 	int ret;
 	int conn_val;
-	socklen_t conn_val_len;
+	//socklen_t conn_val_len;
 	ssize_t rd_wr;
 	ssize_t rd_wr_total = 0;
-	time_t conn_timeout;
-	time_t cur_time;
+	//time_t conn_timeout;
+	//time_t cur_time;
 	char * filename;
 	char filename_buf[512] = {};
 	//char filename_buf[NAME_MAX+1] = {};
 	conn_info_t ci;
 
 	//Create socket
-	ci.sock = socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0);
+	//ci.sock = socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0);
+	ci.sock = socket(AF_INET6, SOCK_STREAM, 0);
 	if (ci.sock == -1) return SOCK_OPEN_ERR;
 
 	//Set socket to be reused
@@ -50,16 +51,16 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 	if (ret == -1) { close(ci.sock); return SOCK_OPT_ERR; }
 
 	//Set up select for checking connect status
-	struct pollfd conn_status[1] = {};
-	conn_status[0].fd = ci.sock;
-	conn_status[0].events = POLLOUT;
+	//struct pollfd conn_status[1] = {};
+	//conn_status[0].fd = ci.sock;
+	//conn_status[0].events = POLLOUT;
 
 	//Try to connect to conn
 	ret = connect(ci.sock, (struct sockaddr *) &addr, sizeof(addr));
 	if (ret == -1 && errno != EINPROGRESS) { close(ci.sock); return SOCK_CONNECT_ERR; }
 
 	//Check connection status
-	conn_timeout = time(NULL);
+	/*conn_timeout = time(NULL);
 	while (1) {
 
 		//Check if connection has completed
@@ -86,7 +87,7 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 			close(ci.sock);
 			return SOCK_CONNECT_ERR;
 		}
-	}
+	}*/
 
 	//Build conn_info
 	ci.status = CONN_STAT_SEND_INPROG;
@@ -150,8 +151,8 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	}
 
 	//Set socket of connection to not block
-	ret = fcntl(ci.sock, F_SETFL, fcntl(ci.sock, F_GETFL, 0) | O_NONBLOCK);
-	if (ret == -1) { close(ci.sock); return SOCK_OPT_ERR; }
+	//ret = fcntl(ci.sock, F_SETFL, fcntl(ci.sock, F_GETFL, 0) | O_NONBLOCK);
+	//if (ret == -1) { close(ci.sock); return SOCK_OPT_ERR; }
 	ci.status = CONN_STAT_RECV_INPROG;
 
 	//Wait to receive filename
