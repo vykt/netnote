@@ -101,11 +101,11 @@ int conn_recv(conn_info_t * ci) {
 	}
 	
 	rd_wr_file = write(ci->fd, recv_buf, rd_wr);
-	if (rd_wr_file == -1 && errno != EAGAIN) {
+	if (rd_wr_file == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
 		close(ci->sock);
 		close(ci->fd);
 		return FILE_WRITE_ERR;
-	} else if (rd_wr_file == -1 && errno == EAGAIN) {
+	} else if (rd_wr_file == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 		while (1) {
 			rd_wr_file = write(ci->fd, recv_buf, rd_wr);
 			if (rd_wr_file == 0) { close(ci->fd); return SOCK_RECV_ERR; }

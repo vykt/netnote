@@ -341,8 +341,10 @@ void main_daemon() {
 			ret = req_receive(&rli, &rc, &pings);
 			if (ret != SUCCESS && ret != FAIL && ret != REQUEST_LIST) {
 				
+				//On error, restart listener
 				log_err(UNIX_ERR_LOG, NULL, NULL);
-				terminate = 1;
+				close_req_listener(&rli);
+				init_req_listener(&rli);
 			}
 
 			//If request was unsuccessful / unauthorised
