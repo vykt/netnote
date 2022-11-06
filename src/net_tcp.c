@@ -169,7 +169,7 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 			//If filename end found
 			if (recv_buf[i] == '/') {
 
-				recv_buf[i] = '\0';
+				//recv_buf[i] = '\0';
 
 				//if name length exceeds NAME_MAX
 				if ((strlen(recv_buf_total) + i) > NAME_MAX) {
@@ -226,6 +226,7 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	//Finally, write the remainder of received buffer into the file if needed.
 	int left_bytes = strlen(recv_buf_total) - filename_end;
 	if (left_bytes) {
+		printf("Left bytes present in listener...\n");
 		rd_wr_total = 0;
 		while(1) {
 			rd_wr = write(ci.fd, recv_buf_total+filename_end+1,

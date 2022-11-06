@@ -92,6 +92,7 @@ int conn_recv(conn_info_t * ci) {
 	ssize_t rd_wr_file;
 	char recv_buf[DF_LEN] = {};
 
+	printf("Receiving socket: %d\n", ci->sock);
 	rd_wr = recv(ci->sock, recv_buf, DF_LEN, 0);
 	if (rd_wr == -1 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
 		perror("conn_recv - recv");
@@ -101,10 +102,12 @@ int conn_recv(conn_info_t * ci) {
 		close(ci->sock);
 		close(ci->fd);
 		ci->status = CONN_STAT_RECV_COMPLETE;
+		printf("rd_wr == 0, connection closed.\n");
 		return SUCCESS;
 	}
 	
 	rd_wr_file = write(ci->fd, recv_buf, rd_wr);
+	printf("wrote %ld bytes to file descriptor.\n", rd_wr_file);
 	if (rd_wr_file == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
 		close(ci->sock);
 		close(ci->fd);
