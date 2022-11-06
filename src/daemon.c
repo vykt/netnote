@@ -55,7 +55,7 @@ void term_handler(int signum) {
 void broken_pipe_handler(int signum) {
 
 	//TODO remove, debug
-	printf("Broken pipe received\n");
+	printf("SIGPIPE received.\n");
 
 }
 

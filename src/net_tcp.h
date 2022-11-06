@@ -18,6 +18,9 @@
 #define CONN_STAT_SEND_COMPLETE 3
 #define CONN_STAT_RECV_COMPLETE 4
 
+#define POLL_CONN_TIMEOUT 10
+#define CONN_TIMEOUT 3
+
 
 typedef struct conn_listener_info conn_listener_info_t;
 typedef struct conn_info conn_info_t;

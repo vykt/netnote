@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/poll.h>
 #include <netinet/in.h>
 
 #include "log.h"
@@ -29,8 +30,12 @@
 int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 
 	int ret;
+	int conn_val;
+	socklen_t conn_val_len;
 	ssize_t rd_wr;
 	ssize_t rd_wr_total = 0;
+	time_t conn_timeout;
+	time_t cur_time;
 	char * filename;
 	char filename_buf[512] = {};
 	//char filename_buf[NAME_MAX+1] = {};
@@ -40,9 +45,48 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 	ci.sock = socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	if (ci.sock == -1) return SOCK_OPEN_ERR;
 
+	//Set socket to be reused
+	ret = setsockopt(ci.sock, SOL_SOCKET, SO_REUSEADDR, &conn_val, sizeof(int));
+	if (ret == -1) { close(ci.sock); return SOCK_OPT_ERR; }
+
+	//Set up select for checking connect status
+	struct pollfd conn_status[1] = {};
+	conn_status[0].fd = ci.sock;
+	conn_status[0].events = POLLOUT;
+
 	//Try to connect to conn
 	ret = connect(ci.sock, (struct sockaddr *) &addr, sizeof(addr));
 	if (ret == -1 && errno != EINPROGRESS) { close(ci.sock); return SOCK_CONNECT_ERR; }
+
+	//Check connection status
+	conn_timeout = time(NULL);
+	while (1) {
+
+		//Check if connection has completed
+		ret = poll(conn_status, 1, POLL_CONN_TIMEOUT);
+		if (ret == -1) { close(ci.sock); return SOCK_CONNECT_ERR; }
+
+		if (conn_status[0].revents & POLLOUT) {
+
+			//Check the outcome of completion
+			conn_val_len = sizeof(conn_val);
+			ret = getsockopt(ci.sock, SOL_SOCKET, SO_ERROR, 
+					         &conn_val, &conn_val_len);
+			if (ret == -1) { close(ci.sock); return SOCK_CONNECT_ERR; }
+
+			if (conn_val == 0) { break; }
+			else {
+				close(ci.sock);
+				return SOCK_CONNECT_ERR;
+			}
+		}
+		//If taking too long, abort
+		cur_time = time(NULL);
+		if (cur_time > (conn_timeout + CONN_TIMEOUT)) {
+			close(ci.sock);
+			return SOCK_CONNECT_ERR;
+		}
+	}
 
 	//Build conn_info
 	ci.status = CONN_STAT_SEND_INPROG;
@@ -211,6 +255,10 @@ int init_conn_listener_info(conn_listener_info_t * cli, unsigned short port) {
 	//Create socket
 	cli->sock = socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	if (cli->sock == -1) return SOCK_OPEN_ERR;
+	
+	//Set socket to be reused
+	ret = setsockopt(cli->sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
+	if (ret == -1) { close(cli->sock); return SOCK_OPT_ERR; }
 
 	//Create listening addr & bind
 	struct sockaddr_in6 addr = {AF_INET6, htons(port)};

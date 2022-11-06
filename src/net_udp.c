@@ -123,10 +123,15 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 int init_send_ping_info(send_ping_info_t * si, char * group_addr_str,
 						unsigned short port) {
 	int ret;
+	int reuse = 1;
 
 	//Create socket
 	si->sock = socket(AF_INET6, SOCK_DGRAM | SOCK_NONBLOCK, 0);
 	if (si->sock == -1) return SOCK_OPEN_ERR;
+
+	//Set socket to be reused
+	ret = setsockopt(si->sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
+	if (ret == -1) { close(si->sock); return SOCK_OPT_ERR; }
 
 	//Create destination address
 	struct sockaddr_in6 addr = {AF_INET6, htons(port)};
@@ -147,6 +152,10 @@ int init_recv_ping_info(recv_ping_info_t * ri, char * group_addr_str,
 	//Create socket
 	ri->sock = socket(AF_INET6, SOCK_DGRAM | SOCK_NONBLOCK, 0);
 	if (ri->sock == -1) return SOCK_OPEN_ERR;
+
+	//Set socket to be reused
+	ret = setsockopt(ri->sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
+	if (ret == -1) { close(ri->sock); return SOCK_OPT_ERR; }
 
 	//Create listening addr & bind
 	struct sockaddr_in6 addr = {AF_INET6, htons(port)};
