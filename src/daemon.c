@@ -435,13 +435,13 @@ int init_daemon() {
 	struct sigaction broken_pipe_act;
 
 	//Fork process
-	//proc_id = fork();
-	//if (proc_id == -1) { return DAEMON_FORK_ERR; }
+	proc_id = fork();
+	if (proc_id == -1) { return DAEMON_FORK_ERR; }
 
 	//Exit if parent
-	//if (proc_id > 0) {
-	//	exit(EXIT_NORMAL);
-	//}
+	if (proc_id > 0) {
+		exit(EXIT_NORMAL);
+	}
 
 	//Unmask file mode
 	umask(0);
@@ -450,9 +450,9 @@ int init_daemon() {
 	chdir("/");
 
 	//Close standard input/output streams
-	//close(STDIN_FILENO);
-	//close(STDOUT_FILENO);
-	//close(STDERR_FILENO);
+	close(STDIN_FILENO);
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);
 
 	//Register term_handler as handler for SIGTERM
 	memset(&kill_act, 0, sizeof(kill_act));
