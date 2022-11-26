@@ -224,8 +224,8 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	}
 
 	//Finally, write the remainder of received buffer into the file if needed.
-	int left_bytes = strlen(recv_buf_total) - filename_end;
-	if (left_bytes) {
+	int left_bytes = strlen(recv_buf_total) - (filename_end + 1);
+	if (left_bytes > 0) {
 		printf("Left bytes present in listener...\n");
 		rd_wr_total = 0;
 		while(1) {
@@ -271,6 +271,7 @@ int init_conn_listener_info(conn_listener_info_t * cli, unsigned short port) {
 
 	ret = bind(cli->sock, (struct sockaddr *) &cli->addr, sizeof(cli->addr));
 	if (ret == -1) { close(cli->sock); return SOCK_BIND_ERR; }
+	//TODO remove above perror()
 
 	//Set sock opts
 	ret = setsockopt(cli->sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
