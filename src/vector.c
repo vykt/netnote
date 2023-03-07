@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "vector.h"
@@ -34,7 +35,7 @@ int vector_add(vector_t * v, unsigned long pos, char * data, unsigned short appe
 	}
 
 	//Check if max capacity reached
-	if (v->length == sizeof(unsigned long) - 1) {
+	if (v->length == UINT64_MAX) {
 		return FULL_ERR;
 	}
 
