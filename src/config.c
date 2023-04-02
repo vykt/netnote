@@ -30,6 +30,7 @@ int config_populate_options(char * options_arr, int options_arr_offset) {
 }
 
 
+//call to read config
 int config_read(char * conf_path, char * options_arr) {
 
 	int ret;

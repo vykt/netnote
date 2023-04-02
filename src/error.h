@@ -67,8 +67,11 @@
 #define LOG_ERR_ERR 43
 #define LOG_ACT_ERR 44
 
+//util.h
+#define UTIL_OPENDIR_ERR 45
+
 //critical errors
-#define CRITICAL_ERR 45
+#define CRITICAL_ERR 46
 
 
 //EXITS
