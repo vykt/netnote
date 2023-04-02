@@ -29,17 +29,40 @@ int main(int argc, char ** argv, char ** envp) {
 	req_info_t ri;
 
 	struct option long_opts[] = {
+		{"list-files", no_argument, NULL, 'f'},
 		{"env-clean", no_argument, NULL, 'e'},
 		{"dl-clean", no_argument, NULL, 'c'},
 		{"daemon", no_argument, NULL, 'd'},
 		{"send", required_argument, NULL, 's'},
-		{"list", no_argument, NULL, 'l'},
+		{"list-peers", no_argument, NULL, 'l'},
 		{0,0,0,0}
 	};
 
-	while ((opt = getopt_long(argc, argv, "ecds:l", long_opts, &opt_index)) != -1) {
+	while ((opt = getopt_long(argc, argv, "fecds:l", long_opts, &opt_index)) != -1) {
 
 		switch (opt) {
+
+			//List files
+			case 'f':
+				//Check running as root
+				check_root = getuid();
+				if (check_root) {
+					printf("Please clean downloads as root.\n");
+					return FAIL;
+				}
+				ret = dl_action(DLDIR_TYPE_LIST);
+				switch(ret) {
+					case CRITICAL_ERR:
+						printf("Critical error occurred.\n");
+						return FAIL;
+					case CONF_READ_ERR:
+						printf("Config couldn't be read.\n");
+						return FAIL;
+					case UTIL_OPENDIR_ERR:
+						printf("Couldn't open downloads directory. Are you a member of the netnote group?\n");
+						return FAIL;
+				}
+				break;
 
 			//Clean downloads
 			case 'c':
@@ -49,7 +72,7 @@ int main(int argc, char ** argv, char ** envp) {
 					printf("Please clean downloads as root.\n");
 					return FAIL;
 				}
-				ret = dl_clean();
+				ret = dl_action(DLDIR_TYPE_RM);
 				switch(ret) {
 					case CRITICAL_ERR:
 						printf("Critical error occurred.\n");
@@ -122,7 +145,7 @@ int main(int argc, char ** argv, char ** envp) {
 
 				return SUCCESS;
 
-			//List function
+			//List peers
 			case 'l':
 				strcpy(file, "LIST");
 				peer_id = atoi("-1");

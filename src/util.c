@@ -24,7 +24,7 @@ void env_clean() {
 }
 
 
-int dl_clean() {
+int dl_action(int type) {
 
 	int ret;
 
@@ -43,12 +43,14 @@ int dl_clean() {
 
 	ret = config_read(config_path, options_arr);
 	if (ret != SUCCESS) {
+		free(options_arr);
 		return CONF_READ_ERR;
 	}
 
 	//Get handle on downloads directory
 	dl_dir = opendir(options_arr+(DL_PATH * PATH_MAX));
 	if (dl_dir == NULL) {
+		free(options_arr);
 		return UTIL_OPENDIR_ERR;
 	}
 
@@ -56,9 +58,21 @@ int dl_clean() {
 	while ((dl_file = readdir(dl_dir)) != NULL) {
 		
 		if (!strcmp(dl_file->d_name, ".") || !strcmp(dl_file->d_name, "..")) continue;
-
 		sprintf(dl_file_path, "%s/%s", options_arr+(DL_PATH * PATH_MAX), dl_file->d_name);
-		printf("file: %s\n", dl_file_path);
+		
+		//list or delete depending on action type
+		if (type == DLDIR_TYPE_RM) {
+			ret = remove(dl_file_path);
+			if (ret == -1) {
+				closedir(dl_dir);
+				free(options_arr);
+				return CRITICAL_ERR;
+			}
+		}
+		//2 if statements here, I really don't want to mess around with rm *
+		if (type == DLDIR_TYPE_LIST) {
+			printf("%s\n", dl_file->d_name);
+		}
 	}
 	
 	closedir(dl_dir);

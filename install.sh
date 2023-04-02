@@ -35,6 +35,7 @@ groupadd netnote
 #create downloads directory
 mkdir ${DOWNLOAD_DIR}
 chmod 640 ${DOWNLOAD_DIR}
+chown root:netnote ${DOWNLOAD_DIR}
 
 #copy netnote.conf
 cp ./netnote.conf /etc
