@@ -17,8 +17,6 @@
 #include "vector.h"
 #include "error.h"
 
-//debug
-#include <stdio.h>
 
 /*
  *  conn_initiate() - Called when sending file to specified address.
@@ -58,8 +56,6 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 	//Try to connect to conn
 	ret = connect(ci.sock, (struct sockaddr *) &addr, sizeof(addr));
 	if (ret == -1 && errno != EINPROGRESS) { close(ci.sock); return SOCK_CONNECT_ERR; }
-
-	printf("Connection socket: %d, connection status: %d\n", ci.sock, ret);
 
 	//Check connection status
 	/*conn_timeout = time(NULL);
@@ -199,7 +195,7 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	strcat(dir_copy, dir);
 	strcat(dir_copy, "/");
 	strcat(dir_copy, filename);
-	ci.fd = open(dir_copy, O_WRONLY | O_CREAT, 0644);
+	ci.fd = open(dir_copy, O_WRONLY | O_CREAT, 0640);
 	if (ci.fd == -1) { 
 		close(ci.sock);
 		return FILE_OPEN_ERR;
@@ -226,7 +222,6 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	//Finally, write the remainder of received buffer into the file if needed.
 	int left_bytes = strlen(recv_buf_total) - (filename_end + 1);
 	if (left_bytes > 0) {
-		printf("Left bytes present in listener...\n");
 		rd_wr_total = 0;
 		while(1) {
 			rd_wr = write(ci.fd, recv_buf_total+filename_end+1,
@@ -244,7 +239,6 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	ret = vector_add(conns, 0, (char *) &ci, VECTOR_APPEND_TRUE);
 	if (ret != SUCCESS) return CRITICAL_ERR;
 
-	sprintf(id_buf, "%lu", conns->length - 1);
 	log_act(RECV_ACT, id_buf, filename);
 
 	return SUCCESS;
