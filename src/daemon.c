@@ -19,6 +19,7 @@
 
 #include "log.h"
 #include "config.h"
+#include "util.h"
 #include "daemon.h"
 #include "request.h"
 #include "net_transfer.h"
@@ -37,8 +38,8 @@ volatile sig_atomic_t terminate = 0;
 
 //Cleanup files if error encountered before entering main loop
 void early_term() {
-	
-	remove("/var/run/netnoted/sock");
+
+	env_clean();
 	log_act(STOP_ACT, NULL, NULL);
 	exit(EXIT_ERR);
 }
@@ -339,7 +340,7 @@ void main_daemon() {
 		//Request listener
 		if (poll_fds[REQ_LISTENER].revents & POLLIN) {
 			ret = req_receive(&rli, &rc, &pings);
-			if (ret != SUCCESS && ret != FAIL && ret != REQUEST_LIST) {
+			if (ret != SUCCESS && ret != FAIL && ret != REQUEST_LIST && ret != DAEMON_TERM_REQ) {
 				
 				//On error, restart listener
 				log_err(UNIX_ERR_LOG, NULL, NULL);
@@ -381,11 +382,15 @@ void main_daemon() {
 				poll_fds[poll_fds_count].events = POLLOUT;
 				++poll_fds_count;
 
+			//If received authorised request to terminate
+			} else if (ret == DAEMON_TERM_REQ) {
+				terminate = 1;
+
 			//If request function encountered an error
 			} else if (ret != REQUEST_LIST) {
 				log_err(CRIT_ERR_LOG, NULL, NULL);
 				terminate = 1;
-
+			
 			} //End request
 		}
 
@@ -411,15 +416,14 @@ void main_daemon() {
 	 *  END MAIN LOGIC
 	 *
 	 */
-	
+
 	//Request cleanup
-	close(rli.sock);
-	ret = term(&si);
-	if (ret != SUCCESS) { free(options_arr); exit(DAEMON_CLEANUP_ERR); }
+	//close(rli.sock);
 
 	//Config cleanup
 	free(options_arr);
 
+	ret = env_clean();
 	log_act(STOP_ACT, NULL, NULL);
 	exit(SUCCESS);
 }

@@ -61,17 +61,19 @@
 #define DAEMON_POLL_RMV_ERR 39
 #define DAEMON_CLEANUP_ERR 40
 #define DAEMON_GROUP_ERR 41
+#define DAEMON_TERM_REQ 42
 
 //log.h
-#define LOG_PATH_ERR 42
-#define LOG_ERR_ERR 43
-#define LOG_ACT_ERR 44
+#define LOG_PATH_ERR 43
+#define LOG_ERR_ERR 44
+#define LOG_ACT_ERR 45
 
 //util.h
-#define UTIL_OPENDIR_ERR 45
+#define UTIL_OPENDIR_ERR 46
+#define UTIL_REMOVE_ERR 47
 
 //critical errors
-#define CRITICAL_ERR 46
+#define CRITICAL_ERR 47
 
 
 //EXITS

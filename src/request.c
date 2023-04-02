@@ -190,7 +190,21 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 		close(sock_conn);
 		return REQUEST_LIST;
 	}
-	
+
+	//If asking to terminate daemon
+	ret = strcmp(request_path, "TERM");
+	if (!ret) {
+		//if not root, insufficient privileges
+		if (cred.uid != 0) {
+			rd_wr = send(sock_conn, "Permission denied.", strlen("Permission denied"), 0);
+			if (rd_wr == -1) close(sock_conn);
+			return FAIL;
+		}
+
+		rd_wr = send(sock_conn, "Terminating...", strlen("Terminating..."), 0);
+		return DAEMON_TERM_REQ;
+	}
+
 	//If asking for send
 
 	//Test permissions

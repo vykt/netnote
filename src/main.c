@@ -35,10 +35,11 @@ int main(int argc, char ** argv, char ** envp) {
 		{"daemon", no_argument, NULL, 'd'},
 		{"send", required_argument, NULL, 's'},
 		{"list-peers", no_argument, NULL, 'l'},
+		{"term", no_argument, NULL, 't'},
 		{0,0,0,0}
 	};
 
-	while ((opt = getopt_long(argc, argv, "fecds:l", long_opts, &opt_index)) != -1) {
+	while ((opt = getopt_long(argc, argv, "fecds:lt", long_opts, &opt_index)) != -1) {
 
 		switch (opt) {
 
@@ -94,7 +95,10 @@ int main(int argc, char ** argv, char ** envp) {
 					printf("Please clean environment as root.\n");
 					return FAIL;
 				}
-				env_clean();
+				ret = env_clean();
+				if (ret == UTIL_REMOVE_ERR) {
+					printf("Not all files were removed. Permission misconfiguration?\n");
+				}
 				break;
 
 			//Daemon option
@@ -162,7 +166,26 @@ int main(int argc, char ** argv, char ** envp) {
 					return FAIL;
 				}
 
-				return SUCCESS;
+				break;
+
+			//Send terminate request
+			case 't':
+				strcpy(file, "TERM");
+				peer_id = atoi("-1");
+
+				ret = init_req(&ri, peer_id, file);
+				if (ret != SUCCESS) {
+					printf("An error occured. Check error log for details.\n");
+					return FAIL;
+				}
+
+				ret = req_send(&ri);
+				if (ret != SUCCESS) {
+					printf("An error occured. Check error log for details.\n");
+					return FAIL;
+				}
+
+				break;
 		}
 	}
 

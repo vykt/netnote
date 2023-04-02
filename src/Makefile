@@ -18,8 +18,8 @@ config.o: config.c config.h error.h
 util.o: util.c util.h config.h error.h
 	${CC} ${CFLAGS} -c util.c util.h config.h error.h
 
-daemon.o: daemon.c log.h config.h daemon.h request.h net_transfer.h net_tcp.h net_udp.h vector.h error.h
-	${CC} ${CFLAGS} -c log.h config.h daemon.c daemon.h request.h net_transfer.h net_tcp.h net_udp.h vector.h error.h
+daemon.o: daemon.c log.h config.h util.h daemon.h request.h net_transfer.h net_tcp.h net_udp.h vector.h error.h
+	${CC} ${CFLAGS} -c log.h config.h util.h daemon.c daemon.h request.h net_transfer.h net_tcp.h net_udp.h vector.h error.h
 
 request.o: request.c log.h request.h vector.h error.h
 	${CC} ${CFLAGS} -c request.c log.h request.h vector.h error.h

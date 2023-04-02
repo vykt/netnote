@@ -11,16 +11,22 @@
 #include "error.h"
 
 
-void env_clean() {
+int env_clean() {
 
+	int ret;
+	int ret_type = SUCCESS;
 	char * env_arr[ENV_LEN] = {
 		"/var/run/netnoted/netnoted.pid",
 		"/var/run/netnoted/sock"
 	};
 
 	for (int i = 0; i < ENV_LEN; ++i) {
-		remove(env_arr[i]);
+		ret = remove(env_arr[i]);
+		if (ret == -1) {
+			ret_type = UTIL_REMOVE_ERR;
+		}
 	}
+	return ret_type;
 }
 
 
