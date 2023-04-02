@@ -77,7 +77,7 @@ int log_err(int err_id, char * id, char * file) {
 	strcat(log_buf, log_msg_buf);
 
 	//Write to log
-	rd_wr = write(fd, log_buf, sizeof(log_buf));
+	rd_wr = dprintf(fd, "%s", log_buf);
 	if (rd_wr == -1) {
 		perror("uwu");
 		close(fd);
