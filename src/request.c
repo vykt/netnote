@@ -70,7 +70,7 @@ int req_send(req_info_t * ri) {
 
 	int ret;
 	ssize_t rd_wr;
-	char itoa_buf[4] = {};
+	char itoa_buf[12] = {};
 	char sock_path[108] = {};	
 	char request[PATH_MAX+4] = {};
 	

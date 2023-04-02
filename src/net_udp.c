@@ -17,7 +17,7 @@
 int check_ping_times(vector_t * pings) {
 
 	int ret;
-	char id_buf[16] = {};
+	char id_buf[24] = {};
 	addr_ping_info_t * ping;
 
 	time_t cur_time = time(NULL);

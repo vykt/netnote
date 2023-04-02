@@ -22,7 +22,7 @@ int log_err(int err_id, char * id, char * file) {
 
 	char log_time_buf[32] = {};
 	char log_msg_buf[LOG_LINE_SIZE] = {};
-	char log_buf[LOG_LINE_SIZE] = "[ERR] [";
+	char log_buf[LOG_LINE_SIZE] = {0};
 
 	char * log_dir_path = "/var/log/netnoted";
 	char * log_path = "/var/log/netnoted/netnoted.log";
@@ -39,6 +39,10 @@ int log_err(int err_id, char * id, char * file) {
 		"File transmission error has occured with peer at %s while transferring file %s.\n",
 		"File receiving error has occured with peer at %s while transferring file %s.\n"
 	};
+
+	//setup array
+	memset(log_buf, (int) '\0', LOG_LINE_SIZE);
+	strcpy(log_buf, "[ERR] [");
 
 	//Create directory and file, if not present
 	ret = mkdir(log_dir_path, 0770);
@@ -72,6 +76,7 @@ int log_err(int err_id, char * id, char * file) {
 		sprintf(log_msg_buf, err_messages[err_id], id);
 	} else {
 		sprintf(log_msg_buf, err_messages[err_id], id, file);
+
 	}
 
 	strcat(log_buf, log_msg_buf);
@@ -101,7 +106,7 @@ int log_act(int act_id, char * id, char * file) {
 
 	char log_time_buf[32] = {};
 	char log_msg_buf[LOG_LINE_SIZE] = {};
-	char log_buf[LOG_LINE_SIZE] = "[ACT] [";
+	char log_buf[LOG_LINE_SIZE] = {0};
 
 	char * log_dir_path = "/var/log/netnoted";
 	char * log_path = "/var/log/netnoted/netnoted.log";
@@ -116,6 +121,10 @@ int log_act(int act_id, char * id, char * file) {
 		"Started sending file '%s' to host at %s.\n",
 		"Started receiving file '%s' from host at %s.\n"
 	};
+
+	//setup array
+	memset(log_buf, (int) '\0', LOG_LINE_SIZE);
+	strcpy(log_buf, "[ACT] [");
 
 	//Create directory and file, if not present
 	ret = mkdir(log_dir_path, 0770);
@@ -154,7 +163,7 @@ int log_act(int act_id, char * id, char * file) {
 	strcat(log_buf, log_msg_buf);
 
 	//Write to log
-	rd_wr = write(fd, log_buf, sizeof(log_buf));
+	rd_wr = dprintf(fd, "%s", log_buf);
 	if (rd_wr == -1) {
 		close(fd);
 		return LOG_ACT_ERR;

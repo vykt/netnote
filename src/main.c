@@ -11,6 +11,12 @@
 #include "request.h"
 #include "error.h"
 
+
+#define ENV_LEN 2
+#define ENV_PID 0
+#define ENV_SOCK 1
+
+
 int main(int argc, char ** argv, char ** envp) {
 
 	// -d, --daemon						: start daemon
@@ -27,15 +33,35 @@ int main(int argc, char ** argv, char ** envp) {
 	req_info_t ri;
 
 	struct option long_opts[] = {
+		{"env-clean", no_argument, NULL, 'e'},
 		{"daemon", no_argument, NULL, 'd'},
 		{"send", required_argument, NULL, 's'},
 		{"list", no_argument, NULL, 'l'},
 		{0,0,0,0}
 	};
 
-	while ((opt = getopt_long(argc, argv, "ds:l", long_opts, &opt_index)) != -1) {
+	char * env_arr[ENV_LEN] = {
+		"/var/run/netnoted/netnoted.pid",
+		"/var/run/netnoted/sock"
+	};
+
+	while ((opt = getopt_long(argc, argv, "eds:l", long_opts, &opt_index)) != -1) {
 
 		switch (opt) {
+
+			//Clean environment
+			case 'e':
+				//Check running as root
+				check_root = getuid();
+				if (check_root) {
+					printf("Please run environment clean as root.\n");
+					return FAIL;
+				}
+				//Check if daemon is running
+				for (int i = 0; i < ENV_LEN; ++i) {
+					remove(env_arr[i]);
+				}
+				break;
 
 			//Daemon option
 			case 'd':
