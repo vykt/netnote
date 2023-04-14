@@ -486,7 +486,7 @@ int init_daemon() {
 	ret = mkdir("/var/run/netnoted", 0755);
 	if (ret == -1 && errno != EEXIST) return DAEMON_PID_WRITE_ERR;
 
-	fd = open("/var/run/netnoted/netnoted.pid", O_WRONLY | O_CREAT);
+	fd = open("/var/run/netnoted/netnoted.pid", O_WRONLY | O_CREAT, 0644);
 	if (fd == -1) return DAEMON_PID_WRITE_ERR;
 
 	ret = chmod("/var/run/netnoted/netnoted.pid", 0644);

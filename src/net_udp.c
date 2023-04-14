@@ -62,7 +62,7 @@ int recv_ping(vector_t * pings, recv_ping_info_t * ri) {
 	ssize_t ret;
 	int rett;
 	int found = 0;
-	unsigned long pos;
+	unsigned long pos = 0;
 	struct addr_ping_info * api;
 	char id_buf[16] = {};
 	char body[MSG_SIZE] = {};

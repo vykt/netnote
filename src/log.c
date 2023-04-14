@@ -48,7 +48,7 @@ int log_err(int err_id, char * id, char * file) {
 	ret = mkdir(log_dir_path, 0770);
 	if (ret == -1 && errno != EEXIST) return LOG_PATH_ERR;
 
-	fd = open(log_path, O_WRONLY | O_APPEND | O_CREAT);
+	fd = open(log_path, O_WRONLY | O_APPEND | O_CREAT, 0644);
 	if (fd == -1) return LOG_ERR_ERR;
 	
 	ret = chmod(log_path, 0664);
@@ -130,7 +130,7 @@ int log_act(int act_id, char * id, char * file) {
 	ret = mkdir(log_dir_path, 0770);
 	if (ret == -1 && errno != EEXIST) return LOG_PATH_ERR;
 
-	fd = open(log_path, O_WRONLY | O_APPEND | O_CREAT);
+	fd = open(log_path, O_WRONLY | O_APPEND | O_CREAT, 0644);
 	if (fd == -1) return LOG_ACT_ERR;
 	
 	ret = chmod(log_path, 0664);
