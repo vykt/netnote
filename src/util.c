@@ -22,9 +22,6 @@ int env_clean() {
 
 	for (int i = 0; i < ENV_LEN; ++i) {
 		ret = remove(env_arr[i]);
-		if (ret == -1) {
-			ret_type = UTIL_REMOVE_ERR;
-		}
 	}
 	return ret_type;
 }

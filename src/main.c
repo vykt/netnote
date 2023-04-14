@@ -96,9 +96,6 @@ int main(int argc, char ** argv, char ** envp) {
 					return FAIL;
 				}
 				ret = env_clean();
-				if (ret == UTIL_REMOVE_ERR) {
-					printf("Not all files were removed. Permission misconfiguration?\n");
-				}
 				break;
 
 			//Daemon option

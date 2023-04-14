@@ -70,7 +70,6 @@
 
 //util.h
 #define UTIL_OPENDIR_ERR 46
-#define UTIL_REMOVE_ERR 47
 
 //critical errors
 #define CRITICAL_ERR 47
