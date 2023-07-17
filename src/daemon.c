@@ -25,6 +25,7 @@
 #include "net_transfer.h"
 #include "net_tcp.h"
 #include "net_udp.h"
+#include "crypt.h"
 #include "vector.h"
 #include "error.h"
 
@@ -183,9 +184,6 @@ void main_daemon() {
 	}
 	
 	//Polling initialiser
-	/*	poll_fds[UDP_LISTENER] = udp listener, POLLIN, index 0
-	 *	poll_fds[TCP_LISTENER] = tcp listener, POLLIN, index 1
-	 */
 	poll_fds[UDP_LISTENER].fd = ri.sock;
 	poll_fds[TCP_LISTENER].fd = cli.sock;
 	poll_fds[REQ_LISTENER].fd = rli.sock;
@@ -220,7 +218,7 @@ void main_daemon() {
 
 		//Connection listener
 		if (poll_fds[TCP_LISTENER].revents & POLLIN) {
-			ret = conn_listener(&conns, cli, (options_arr+(DL_PATH*PATH_MAX)));
+			ret = conn_listener(&conns, cli, options_arr);
 			if (ret != SUCCESS && ret != FAIL && ret != CRITICAL_ERR) {
 				log_err(TCP_ERR_LOG, "<connecting>", NULL);
 			} else if (ret != SUCCESS) {
@@ -439,13 +437,13 @@ int init_daemon() {
 	struct sigaction broken_pipe_act;
 
 	//Fork process
-	proc_id = fork();
-	if (proc_id == -1) { return DAEMON_FORK_ERR; }
+	//proc_id = fork();
+	//if (proc_id == -1) { return DAEMON_FORK_ERR; }
 
 	//Exit if parent
-	if (proc_id > 0) {
-		exit(EXIT_NORMAL);
-	}
+	//if (proc_id > 0) {
+	//	exit(EXIT_NORMAL);
+	//}
 
 	//Unmask file mode
 	umask(0);
@@ -454,15 +452,15 @@ int init_daemon() {
 	chdir("/");
 
 	//Close standard input/output streams
-	close(STDIN_FILENO);
-	close(STDOUT_FILENO);
-	close(STDERR_FILENO);
+	//close(STDIN_FILENO);
+	//close(STDOUT_FILENO);
+	//close(STDERR_FILENO);
 
 	//Register term_handler as handler for SIGTERM
-	memset(&kill_act, 0, sizeof(kill_act));
-	kill_act.sa_handler = term_handler;
-	ret = sigaction(SIGTERM, &kill_act, NULL);
-	if (ret == -1) return DAEMON_HANDLER_ERR;
+	//memset(&kill_act, 0, sizeof(kill_act));
+	//kill_act.sa_handler = term_handler;
+	//ret = sigaction(SIGTERM, &kill_act, NULL);
+	//if (ret == -1) return DAEMON_HANDLER_ERR;
 
 	//Register term_handler as handler for SIGPIPE
 	memset(&broken_pipe_act, 0, sizeof(broken_pipe_act));
@@ -471,8 +469,8 @@ int init_daemon() {
 	if (ret == -1) return DAEMON_HANDLER_ERR;
 
 	//Change process name to 'netnoted'
-	ret = prctl(PR_SET_NAME, "netnoted", NULL, NULL, NULL);
-	if (ret == -1) return DAEMON_NAME_ERR;
+	//ret = prctl(PR_SET_NAME, "netnoted", NULL, NULL, NULL);
+	//if (ret == -1) return DAEMON_NAME_ERR;
 
 	//Remove previous PID if present
 	ret = remove("/var/run/netnoted/netnoted.pid");

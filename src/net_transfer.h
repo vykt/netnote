@@ -6,8 +6,7 @@
 #include "net_tcp.h"
 
 #define DF_BLOCK 2097152 //Default mmap block size  (2Mb)
-#define DF_LEN 1024		 //Default send buffer size (4Kb)
-
+#define DF_LEN 1024		 //Default send buffer size (1Kb)
 
 int conn_send(conn_info_t * ci);
 int conn_recv(conn_info_t * ci);

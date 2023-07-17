@@ -40,7 +40,8 @@ int config_read(char * conf_path, char * options_arr) {
 		"multicast_addr",
 		"shared_udp_port",
 		"shared_tcp_port",
-		"downloads_path"
+		"downloads_path",
+        "stream_key"
 	};
 
 	char * conf_line = malloc((PATH_MAX + CONF_OPTION_SIZE) * sizeof(char));
@@ -83,7 +84,7 @@ int config_read(char * conf_path, char * options_arr) {
 	//TODO check all options get read
 	for (int i = 0; i < CONF_OPTION_NUM; i++) {
 		
-		//Theoretically (lol): if option has not been read
+		//Theoretically, if option has not been read
 		if (*(options_arr+(i * PATH_MAX)) == 0) {
 			free(conf_line);
 			fclose(fd);

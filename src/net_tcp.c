@@ -14,6 +14,8 @@
 
 #include "log.h"
 #include "net_tcp.h"
+#include "crypt.h"
+#include "config.h"
 #include "vector.h"
 #include "error.h"
 
@@ -48,44 +50,9 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 	ret = setsockopt(ci.sock, SOL_SOCKET, SO_REUSEADDR, &conn_val, sizeof(int));
 	if (ret == -1) { close(ci.sock); return SOCK_OPT_ERR; }
 
-	//Set up select for checking connect status
-	//struct pollfd conn_status[1] = {};
-	//conn_status[0].fd = ci.sock;
-	//conn_status[0].events = POLLOUT;
-
 	//Try to connect to conn
 	ret = connect(ci.sock, (struct sockaddr *) &addr, sizeof(addr));
 	if (ret == -1 && errno != EINPROGRESS) { close(ci.sock); return SOCK_CONNECT_ERR; }
-
-	//Check connection status
-	/*conn_timeout = time(NULL);
-	while (1) {
-
-		//Check if connection has completed
-		ret = poll(conn_status, 1, POLL_CONN_TIMEOUT);
-		if (ret == -1) { close(ci.sock); return SOCK_CONNECT_ERR; }
-
-		if (conn_status[0].revents & POLLOUT) {
-
-			//Check the outcome of completion
-			conn_val_len = sizeof(conn_val);
-			ret = getsockopt(ci.sock, SOL_SOCKET, SO_ERROR, 
-					         &conn_val, &conn_val_len);
-			if (ret == -1) { close(ci.sock); return SOCK_CONNECT_ERR; }
-
-			if (conn_val == 0) { break; }
-			else {
-				close(ci.sock);
-				return SOCK_CONNECT_ERR;
-			}
-		}
-		//If taking too long, abort
-		cur_time = time(NULL);
-		if (cur_time > (conn_timeout + CONN_TIMEOUT)) {
-			close(ci.sock);
-			return SOCK_CONNECT_ERR;
-		}
-	}*/
 
 	//Build conn_info
 	ci.status = CONN_STAT_SEND_INPROG;
@@ -124,7 +91,7 @@ int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file) {
 }
 
 
-int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
+int conn_listener(vector_t * conns, conn_listener_info_t cli, char * options_arr) {
 
 	int ret;
 	ssize_t rd_wr;
@@ -148,12 +115,11 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 		return SOCK_RECV_ERR;
 	}
 
-	//Set socket of connection to not block
-	//ret = fcntl(ci.sock, F_SETFL, fcntl(ci.sock, F_GETFL, 0) | O_NONBLOCK);
-	//if (ret == -1) { close(ci.sock); return SOCK_OPT_ERR; }
-	ci.status = CONN_STAT_RECV_INPROG;
+    //Initialise seed
+    init_crypt(options_arr, &ci);
 
 	//Wait to receive filename
+	ci.status = CONN_STAT_RECV_INPROG;
 	int recv_inprog = 1;
 	while (recv_inprog) {
 		
@@ -164,8 +130,6 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 			
 			//If filename end found
 			if (recv_buf[i] == '/') {
-
-				//recv_buf[i] = '\0';
 
 				//if name length exceeds NAME_MAX
 				if ((strlen(recv_buf_total) + i) > NAME_MAX) {
@@ -192,7 +156,7 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	} //End wait to receive filename
 
 	//Now, create file at /dir/filename
-	strcat(dir_copy, dir);
+	strcat(dir_copy, options_arr+(DL_PATH*PATH_MAX));
 	strcat(dir_copy, "/");
 	strcat(dir_copy, filename);
 	ci.fd = open(dir_copy, O_WRONLY | O_CREAT, 0640);
@@ -224,6 +188,11 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 	if (left_bytes > 0) {
 		rd_wr_total = 0;
 		while(1) {
+
+            //shoehorn encryption TODO
+            cipher_buffer(recv_buf_total+filename_end+1,
+                          strlen(recv_buf_total)-filename_end-1, &ci);
+
 			rd_wr = write(ci.fd, recv_buf_total+filename_end+1,
 						strlen(recv_buf_total)-filename_end-1);
 			if (rd_wr == -1) {

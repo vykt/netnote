@@ -49,11 +49,12 @@ struct conn_info {
 	size_t mmap_size; //Size of block
 	size_t mmap_prog; //Progress through block
 
+    unsigned int seed;
 };
 
 
 int conn_initiate(vector_t * conns, struct sockaddr_in6 addr, char * file);
-int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir);
+int conn_listener(vector_t * conns, conn_listener_info_t cli, char * options_arr);
 int init_conn_listener_info(conn_listener_info_t * cli, unsigned short port);
 int close_conn_listener_info(conn_listener_info_t * cli);
 

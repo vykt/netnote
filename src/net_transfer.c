@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 #include <errno.h>
 
 #include <sys/mman.h>
@@ -7,6 +8,7 @@
 #include "log.h"
 #include "net_transfer.h"
 #include "net_tcp.h"
+#include "crypt.h"
 #include "error.h"
 
 
@@ -42,7 +44,10 @@ int conn_send(conn_info_t * ci) {
 
 	int ret;
 	ssize_t rd_wr;
-	size_t len;
+	ssize_t rd_wr_total;
+    size_t len;
+
+    char crypt_buffer[DF_LEN] = {};
 
 	//Check if end of last block reached
 	if (ci->mmap_size == ci->mmap_prog) {
@@ -71,15 +76,31 @@ int conn_send(conn_info_t * ci) {
 	}
 
 	len = get_len(ci);
-	printf("Sending socket: %d\n", ci->sock);
-	rd_wr = send(ci->sock, ci->mmap_addr + ci->mmap_prog, len, 0);
-	if (rd_wr == -1 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
-		close(ci->sock);
-		perror("conn_send - send");
-		return SOCK_SEND_ERR;
-	}
 
-	if (rd_wr != -1) ci->mmap_prog = ci->mmap_prog + rd_wr;
+    //shoehorning encryption
+    memcpy(crypt_buffer, ci->mmap_addr + ci->mmap_prog, len);
+    cipher_buffer(crypt_buffer, len, ci);
+
+	printf("Sending socket: %d\n", ci->sock);
+	//rd_wr = send(ci->sock, ci->mmap_addr + ci->mmap_prog, len, 0);
+    
+    //need to send entire buffer, otherwise rng will be out of sync with receiver
+    rd_wr_total = 0;
+    while (rd_wr_total < len) {
+     
+        rd_wr = send(ci->sock, crypt_buffer+rd_wr_total, len - rd_wr_total, 0);
+
+        //if send failed
+        if (rd_wr == -1 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
+            close(ci->sock);
+            perror("conn_send - send");
+            return SOCK_SEND_ERR;
+        }
+
+        //increment progress
+	    ci->mmap_prog = ci->mmap_prog + rd_wr;
+        rd_wr_total += rd_wr;
+    }
 
 	return SUCCESS;
 }
@@ -105,7 +126,10 @@ int conn_recv(conn_info_t * ci) {
 		printf("rd_wr == 0, connection closed.\n");
 		return SUCCESS;
 	}
-	
+
+    //shoehorning encryption
+    cipher_buffer(recv_buf, rd_wr, ci);
+
 	rd_wr_file = write(ci->fd, recv_buf, rd_wr);
 	printf("wrote %ld bytes to file descriptor.\n", rd_wr_file);
 	if (rd_wr_file == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
