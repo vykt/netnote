@@ -134,10 +134,10 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 	char * request_id;
 	char * request_path;
 
-	char * perm_err_response = "Permission error.";
-	char * file_exist_err_response = "File exist error.";
-	char * out_of_bounds_err_response = "Requested id is out of range.";
-	char * successful_response = "Success.";
+	char * perm_err_response = "Permission error.\n";
+	char * file_exist_err_response = "File exist error.\n";
+	char * out_of_bounds_err_response = "Requested id is out of range.\n";
+	char * successful_response = "Success.\n";
 
 	//Try listen
 	sock_conn = accept(rli->sock, NULL, NULL);
@@ -201,12 +201,12 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 	if (!ret) {
 		//if not root, insufficient privileges
 		if (cred.uid != 0) {
-			rd_wr = send(sock_conn, "Permission denied.", strlen("Permission denied"), 0);
+			rd_wr = send(sock_conn, "Permission denied.\n", strlen("Permission denied\n"), 0);
 			if (rd_wr == -1) close(sock_conn);
 			return FAIL;
 		}
 
-		rd_wr = send(sock_conn, "Terminating...", strlen("Terminating..."), 0);
+		rd_wr = send(sock_conn, "Terminating...\n", strlen("Terminating...\n"), 0);
 		return DAEMON_TERM_REQ;
 	}
 
