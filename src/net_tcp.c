@@ -183,7 +183,7 @@ int conn_listener(vector_t * conns, conn_listener_info_t cli, char * dir) {
 		} //End for every received character
 
 		rd_wr_total = rd_wr_total + rd_wr;
-		if (rd_wr_total <= NAME_MAX) {
+		if (filename_end <= NAME_MAX) {
 			strcat(recv_buf_total, recv_buf);
 		} else {
 			close(ci.sock);

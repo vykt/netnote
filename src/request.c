@@ -109,7 +109,7 @@ int req_send(req_info_t * ri) {
 	rd_wr = recv(ri->sock, ri->reply, REQ_REPLY_SIZE, 0);
 	if (rd_wr <= 0) { close(ri->sock); return SOCK_RECV_ERR; }
 
-	printf("%s\n", ri->reply);
+	printf("%s", ri->reply);
 
 	close(ri->sock);
 	return SUCCESS;
@@ -170,8 +170,13 @@ int req_receive(req_listener_info_t * rli, req_cred_t * rc, vector_t * pings) {
 	ret = strcmp(request_path, "LIST");	
 	if (!ret) {
 
+        //No hosts (only own ping)
+        if (pings->length == 1) {
+            strcat(reply, "No connections.\n");
+        }
+
 		//For every ping, build line of response message
-		for (int i = 0; i < pings->length; i++) {
+		for (int i = 1; i < pings->length; i++) {
 
 			ret = vector_get_ref(pings, i, (char **) &pi);
 			if (ret != SUCCESS) { close(sock_conn); return ret; }
