@@ -28,9 +28,6 @@
 #include "vector.h"
 #include "error.h"
 
-//TODO debug include
-#include <stdio.h>
-
 
 //Looping condition
 volatile sig_atomic_t terminate = 0;
@@ -55,7 +52,7 @@ void term_handler(int signum) {
 //Respond to SIGPIPE
 void broken_pipe_handler(int signum) {
 
-	//TODO remove, debug
+	//TODO figure out a more appropriate response
 	printf("SIGPIPE received.\n");
 
 }

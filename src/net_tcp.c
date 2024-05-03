@@ -265,7 +265,6 @@ int init_conn_listener_info(conn_listener_info_t * cli, unsigned short port) {
 
 	ret = bind(cli->sock, (struct sockaddr *) &cli->addr, sizeof(cli->addr));
 	if (ret == -1) { close(cli->sock); return SOCK_BIND_ERR; }
-	//TODO remove above perror()
 
 	//Set sock opts
 	ret = setsockopt(cli->sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
